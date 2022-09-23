@@ -1,0 +1,101 @@
+{
+    "entries": [
+        {
+            "defs": [{
+                "exs": [
+                    "The abandonment of the island followed nuclear tests in the area.",
+                    "His abandonment by his mother when he was a baby affected him all his life."
+                ],
+                "related_words": [
+                    "banish",
+                    "be scattered to the four winds idiom",
+                    "bin",
+                    "cast sb/sth aside/away/off",
+                    "cast sb/sth out",
+                    "dumping",
+                    "erase",
+                    "evacuate",
+                    "evacuation",
+                    "exorcism",
+                    "expunge",
+                    "expurgate",
+                    "scrape",
+                    "shrug sth off",
+                    "shuck",
+                    "shuck sth off",
+                    "shuffle sth off",
+                    "sling",
+                    "sling sth out",
+                    "turf"
+                ],
+                "def": "the act of leaving someone or something or of ending or stopping something, usually forever:",
+                "level": "",
+                "gra": ""
+            }],
+            "def": "the act of leaving someone or something or of ending or stopping something, usually forever:",
+            "pos": "n",
+            "level": "",
+            "pron_uk": "https://dictionary.cambridge.org/media/english/uk_pron/u/uka/uka__/uka____016.mp3",
+            "uk": "/əˈbæn.dən.mənt/",
+            "idioms": [],
+            "phrasal_verbs": [],
+            "pron_us": "https://dictionary.cambridge.org/media/english/us_pron/a/aba/aband/abandonment.mp3",
+            "us": "/əˈbæn.dən.mənt/"
+        },
+        {
+            "defs": [
+                {
+                    "related_words": [
+                        "drop",
+                        "jettison",
+                        "leave"
+                    ],
+                    "ex": "The frightened thieves abandoned the stolen car.",
+                    "def": "to leave behind with no plan to return or take possession again; desert. ",
+                    "synonyms": [
+                        "desert",
+                        "forsake",
+                        "turn one's back on"
+                    ]
+                },
+                {
+                    "related_words": [
+                        "give up",
+                        "surrender",
+                        "turn one's back on"
+                    ],
+                    "imgs": [
+                        "https://kids.wordsmyth.net/media/wedt/image/abandonHem_0402_0011_tsls.jpg"
+                    ],
+                    "ex": "The terrible drought forced many farmers to abandon their farms. The captain gave the order to abandon the ship.",
+                    "def": "to give up (one's home, fort, ship, or the like) by leaving it. ",
+                    "synonyms": ["forsake"]
+                },
+                {
+                    "ex": "He abandoned his dream of being an actor. She abandoned her chores and went fishing.",
+                    "def": "to stop pursuing; give up. ",
+                    "synonyms": [
+                        "forsake",
+                        "give up"
+                    ]
+                }
+            ],
+            "img": "https://kids.wordsmyth.net/media/wedt/image/abandonHem_0402_0011_tsls.jpg",
+            "infs": [
+                "abandons",
+                "abandoning",
+                "abandoned"
+            ],
+            "def": "to leave behind with no plan to return or take possession again; desert. ",
+            "pos": "v",
+            "word_form": "abandons, abandoning, abandoned"
+        }
+    ],
+    "wid": 10,
+    "pron_uk": "https://dictionary.cambridge.org/media/english/uk_pron/u/uka/uka__/uka____016.mp3",
+    "uk": "/əˈbæn.dən.mənt/",
+    "name": "abandonment",
+    "link": "https://dictionary.cambridge.org/dictionary/english/abandonment",
+    "pron_us": "https://dictionary.cambridge.org/media/english/us_pron/a/aba/aband/abandonment.mp3",
+    "us": "/əˈbæn.dən.mənt/"
+}
