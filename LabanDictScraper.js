@@ -2,6 +2,7 @@ import { fs } from "./deps.ts";
 import { path } from "./deps.ts";
 import { log } from "./deps.ts";
 import { download } from "./deps.ts";
+import { sleepRandomAmountOfSeconds } from "https://deno.land/x/sleep/mod.ts";
 import { postgres } from "./deps.ts";
 
 /**
@@ -131,7 +132,108 @@ async function readLemmas(file) {
   return [...lemmas];
 }
 
+async function lookup(lemmas, outputFile) {
+  const api = "https://dict.laban.vn/ajax/find?type=1&query=";
+
+  logger.info("Begining scan https://dict.laban.vn ...");
+
+  let url;
+  let lemma;
+  let response;
+  let data;
+  const length = lemmas.length;
+  //const length = 120;
+  const results = new Set();
+
+  let rs;
+
+  let viData;
+  let enData;
+  let viCount = 0;
+  let enCount = 0;
+
+  Deno.writeTextFileSync(outputFile, "[");
+  for (let i = 0; i < length; i++) {
+    lemma = lemmas[i];
+    rs = Object.assign({}, lemma);
+    rs.data = {};
+    url = `${api}${lemma.lemma}`;
+    try {
+      response = await fetch(url);
+      data = await response.json();
+      //console.log(data);
+
+      rs.data.error = data.error;
+
+      if (data.error === 0) {
+        viData = data.enViData?.best;
+        enData = data.enEnData?.best;
+
+        if (
+          viData &&
+          viData.word?.toLowerCase() === lemma.lemma.toLowerCase()
+        ) {
+          rs.data.vi = viData.details?.trim();
+          viCount++;
+        }
+
+        if (
+          enData &&
+          enData.word?.toLowerCase() === lemma.lemma.toLowerCase()
+        ) {
+          rs.data.en = enData.details?.trim();
+          enCount++;
+        }
+      }
+    } catch (err) {
+      console.warn("Error: ", err.message);
+      rs.data.error = 9999;
+      rs.data.message = err.message;
+    }
+    results.add(rs);
+
+    if (i > 0 && i % 100 === 0) {
+      console.log(
+        `Scanned ${i + 1} lemmas, vi count: ${viCount}, en count: ${enCount}`
+      );
+      const batch = JSON.stringify([...results]);
+      if (i > 100) {
+        Deno.writeTextFileSync(outputFile, ",", {
+          append: true,
+        });
+      }
+
+      Deno.writeTextFileSync(outputFile, batch.substring(1, batch.length - 1), {
+        append: true,
+      });
+      results.clear();
+    }
+
+    await sleepRandomAmountOfSeconds(0.01, 0.05, true);
+  }
+
+  if (results.size > 0) {
+    Deno.writeTextFileSync(outputFile, ",", {
+      append: true,
+    });
+    const batch = JSON.stringify([...results]);
+    Deno.writeTextFileSync(outputFile, batch.substring(1, batch.length - 1), {
+      append: true,
+    });
+  }
+
+  Deno.writeTextFileSync(outputFile, "]", {
+    append: true,
+  });
+
+  logger.info(
+    `Scanned total ${length} lemmas, vi count: ${viCount}, en count: ${enCount}`
+  );
+}
+
 const lemmas = await readLemmas(LEMMAS_FILE);
 logger.info(`Found ${lemmas.length} lemmas`);
 
-console.log(lemmas.slice(0, 5));
+await lookup(lemmas, "./lemmas_laban.json");
+
+logger.info("DONE!");
