@@ -205,7 +205,7 @@ async function lookup(lemmas, outputFile) {
         rs.data.message = err.message;
       }
 
-      await sleepRandomAmountOfSeconds(0.2, 0.5, true);
+      await sleepRandomAmountOfSeconds(1, 2, true);
     }
 
     results.add(rs);
@@ -217,7 +217,7 @@ async function lookup(lemmas, outputFile) {
         } lemmas, vi count: ${viCount}, en count: ${enCount}`
       );
       const batch = JSON.stringify([...results]);
-      if (entryCnt >= 100) {
+      if (entryCnt > 100) {
         Deno.writeTextFileSync(outputFile, ",", {
           append: true,
         });
