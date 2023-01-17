@@ -24,7 +24,7 @@ await log.setup({
     console: new log.handlers.ConsoleHandler("DEBUG"),
 
     file: new log.handlers.FileHandler("INFO", {
-      filename: `./cambridge_vn.log`,
+      filename: `./cambridge_scraper.log`,
       // you can change format of output message using any keys in `LogRecord`.
       //formatter: "{datetime} {levelName} {msg}",
       formatter: (logRecord) => {
@@ -134,129 +134,6 @@ async function readLemmas(file) {
   return [...lemmas];
 }
 
-async function lookup(lemmas, outputFile) {
-  const api =
-    "https://dictionary.cambridge.org/vi/dictionary/english-vietnamese/";
-
-  logger.info(
-    "Begining scan https://dictionary.cambridge.org/vi/dictionary/english-vietnamese/ ..."
-  );
-
-  let url;
-  let lemma;
-  let response;
-  let data;
-  const length = lemmas.length;
-  //const length = 1;
-  const results = new Set();
-
-  let rs;
-  let html;
-  let content;
-  let viData;
-  let enData;
-  let entryCnt = 0;
-  let viCount = 0;
-  let enCount = 0;
-  const parser = new DOMParser();
-
-  Deno.writeTextFileSync(outputFile, "[");
-  for (let i = 0; i < length; i++) {
-    lemma = lemmas[i];
-    rs = Object.assign({}, lemma);
-    if (!rs.data?.vi) {
-      entryCnt++;
-      rs.data = {};
-      url = `${api}${lemma.lemma}`;
-      try {
-        response = await fetch(url, {
-          "Content-Type": "text/html",
-        });
-
-        data = await response.text();
-        html = parser.parseFromString(data);
-        content = html.getElementById("page-content");
-        if (content) {
-          outer: for (let j = 0; j < content.childNodes.length; j++) {
-            if (content.childNodes[j].className === "entry-body") {
-              let node = content.childNodes[j];
-              for (let k = 0; k < node.childNodes.length; k++) {
-                if (node.childNodes[k].className === "pr dictionary") {
-                  let child = node.childNodes[k];
-                  //Only get first definition set
-                  for (let t = 0; t < child.childNodes.length; t++) {
-                    if (child.childNodes[t].className === "link dlink") {
-                      rs.data.vi = child.childNodes[t].innerHTML;
-                      viCount++;
-                      break outer;
-                    }
-                  }
-                }
-              }
-            }
-          }
-        } else {
-          logger.warning(`Not found page-content of lemma ${lemma.lemma}`);
-        }
-        //console.log(data);
-      } catch (err) {
-        console.warn("Error: ", err);
-        rs.data.error = 9999;
-        rs.data.message = err.message;
-      }
-
-      await sleepRandomAmountOfSeconds(1, 2, true);
-    }
-
-    results.add(rs);
-
-    if (entryCnt > 0 && entryCnt % 100 === 0) {
-      console.log(
-        `Scanned ${entryCnt}/${
-          i + 1
-        } lemmas, vi count: ${viCount}, en count: ${enCount}`
-      );
-      const batch = JSON.stringify([...results]);
-      if (entryCnt > 100) {
-        Deno.writeTextFileSync(outputFile, ",", {
-          append: true,
-        });
-      }
-
-      Deno.writeTextFileSync(outputFile, batch.substring(1, batch.length - 1), {
-        append: true,
-      });
-      results.clear();
-    }
-  }
-
-  if (results.size > 0) {
-    Deno.writeTextFileSync(outputFile, ",", {
-      append: true,
-    });
-    const batch = JSON.stringify([...results]);
-    Deno.writeTextFileSync(outputFile, batch.substring(1, batch.length - 1), {
-      append: true,
-    });
-  }
-
-  Deno.writeTextFileSync(outputFile, "]", {
-    append: true,
-  });
-
-  logger.info(
-    `Scanned total ${entryCnt}/${length} lemmas, vi count: ${viCount}, en count: ${enCount}`
-  );
-}
-
-//const lemmas = await readLemmas(LEMMAS_FILE);
-//logger.info(`Found ${lemmas.length} lemmas`);
-
-//await lookup(lemmas, "./lemmas_cambridge_vn.json");
-
-const JSON_FILE =
-  "C:/Users/thangqm/My Workspace/cth-azvocab-tool/lemmas_cambridge_vn.json";
-
 async function readLemmaJson(file) {
   try {
     const texts = await Deno.readTextFile(file);
@@ -270,7 +147,165 @@ async function readLemmaJson(file) {
   return [];
 }
 
-const lemmas = await readLemmaJson(JSON_FILE);
-await lookup(lemmas, "./lemmas_cambridge_vn_2.json");
+async function lookup(apiUrl, lemmas, outputFile) {
+  logger.info(`Begining scan ${apiUrl} ...`);
+
+  let url;
+  let lemma;
+  let response;
+  let data;
+  const length = lemmas.length;
+  //const length = 3;
+  const results = new Set();
+
+  let rs;
+  let html;
+  let content;
+  let entryCnt = 0;
+  let dataCount = 0;
+  const parser = new DOMParser();
+  let written = false;
+  let parentClass;
+  Deno.writeTextFileSync(outputFile, "[");
+  for (let i = 0; i < length; i++) {
+    lemma = lemmas[i];
+    rs = Object.assign({}, lemma);
+    if (!rs.data) {
+      entryCnt++;
+      url = `${apiUrl}${lemma.lemma}`;
+      try {
+        response = await fetch(url, {
+          "Content-Type": "text/html",
+        });
+
+        data = await response.text();
+        html = parser.parseFromString(data);
+        content = html.getElementById("page-content");
+        if (content) {
+          outer: for (let j = 0; j < content.childNodes.length; j++) {
+            parentClass = content.childNodes[j].className;
+            if (parentClass === "entry-body") {
+              //console.log("Found entry-body class ...");
+              //Cambridge Vietnamese
+              let node = content.childNodes[j];
+              for (let k = 0; k < node.childNodes.length; k++) {
+                if (node.childNodes[k].className === "pr dictionary") {
+                  let child = node.childNodes[k];
+                  //Only get first definition set
+                  for (let t = 0; t < child.childNodes.length; t++) {
+                    if (child.childNodes[t].className === "link dlink") {
+                      dataCount++;
+                      rs.data = child.childNodes[t].innerHTML;
+                      break outer;
+                    }
+                  }
+                }
+              }
+            } else if (parentClass === "page") {
+              //console.log("Found page class ...");
+              //Cambridge English
+              let node = content.childNodes[j];
+              for (let k = 0; k < node.childNodes.length; k++) {
+                // console.log(
+                //   `Node: ${k}/${node.childNodes.length}, class: ${node.childNodes[k].className}`
+                // );
+                if (node.childNodes[k].className === "pr dictionary") {
+                  let child = node.childNodes[k];
+                  //Only get first definition set
+                  for (let t = 0; t < child.childNodes.length; t++) {
+                    // console.log(
+                    //   `Node: ${t}/${child.childNodes.length}, class: ${child.childNodes[t].className}`
+                    // );
+                    if (child.childNodes[t].className === "link") {
+                      dataCount++;
+                      rs.data = child.childNodes[t].innerHTML;
+                      break outer;
+                    }
+                  }
+                }
+              }
+            }
+          }
+        } else {
+          logger.warning(`Not found page-content of lemma ${lemma.lemma}`);
+        }
+        //console.log(data);
+      } catch (err) {
+        console.warn("Error: ", err);
+        rs.error = { code: 9999, message: err.message };
+      }
+
+      await sleepRandomAmountOfSeconds(0.5, 1, true);
+    }
+
+    results.add(rs);
+
+    if (entryCnt > 0 && entryCnt % 100 === 0 && results.size > 0) {
+      console.log(
+        `Scanned ${entryCnt}/${length} lemmas, data count: ${dataCount}`
+      );
+      const batch = JSON.stringify([...results]);
+
+      if (!written) {
+        Deno.writeTextFileSync(outputFile, ",", {
+          append: true,
+        });
+      }
+
+      Deno.writeTextFileSync(outputFile, batch.substring(1, batch.length - 1), {
+        append: true,
+      });
+
+      written = true;
+      results.clear();
+    }
+  }
+
+  if (results.size > 0) {
+    if (written) {
+      Deno.writeTextFileSync(outputFile, ",", {
+        append: true,
+      });
+    }
+
+    const batch = JSON.stringify([...results]);
+
+    Deno.writeTextFileSync(outputFile, batch.substring(1, batch.length - 1), {
+      append: true,
+    });
+  }
+
+  Deno.writeTextFileSync(outputFile, "]", {
+    append: true,
+  });
+
+  logger.info(
+    `Scanned total ${entryCnt}/${length} lemmas, data count: ${dataCount}`
+  );
+}
+
+const apiUrl_Vn =
+  "https://dictionary.cambridge.org/vi/dictionary/english-vietnamese/";
+
+const apiUrl_En = "https://dictionary.cambridge.org/dictionary/english/";
+
+const lemmas = await readLemmas(LEMMAS_FILE);
+logger.info(`Found ${lemmas.length} lemmas`);
+
+//await lookup(apiUrl_Vn, lemmas, "./lemmas_cambridge_vn.json");
+await lookup(apiUrl_En, lemmas, "./lemmas_cambridge_en.json");
+
+/**
+ * RESCAN
+ * Use when rescan
+ */
+// const JSON_FILE =
+//   "C:/Users/thangqm/My Workspace/cth-azvocab-tool/lemmas_cambridge_vn.json";
+
+// const lemmas = await readLemmaJson(JSON_FILE);
+// await lookup(apiUrl, lemmas, "./lemmas_cambridge_vn_2.json");
+/**
+ * END RESCAN
+ */
 
 logger.info("DONE!");
