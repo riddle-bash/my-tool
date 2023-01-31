@@ -136,7 +136,12 @@ async function readLemmas(file) {
 
 async function readLemmaJson(file) {
   try {
-    const texts = await Deno.readTextFile(file);
+    let texts = await Deno.readTextFile(file);
+
+    if (!texts.endsWith("]")) {
+      texts = texts + "]";
+    }
+
     const json = JSON.parse(texts);
     logger.info(`Loaded ${json.length} lemmas of file ${file}`);
     return json;
@@ -147,15 +152,15 @@ async function readLemmaJson(file) {
   return [];
 }
 
-async function lookup(apiUrl, lemmas, outputFile) {
-  logger.info(`Begining scan ${apiUrl} ...`);
+async function lookup(apiUrl, lemmas, outputFile, startIndex) {
+  logger.info(`Begining scan ${apiUrl}, start index = ${startIndex} ...`);
 
   let url;
   let lemma;
   let response;
   let data;
   const length = lemmas.length;
-  //const length = 3;
+  //const length = 1;
   const results = new Set();
 
   let rs;
@@ -165,88 +170,115 @@ async function lookup(apiUrl, lemmas, outputFile) {
   let dataCount = 0;
   const parser = new DOMParser();
   let written = false;
+  let retryCnt = 0;
   let parentClass;
-  Deno.writeTextFileSync(outputFile, "[");
-  for (let i = 0; i < length; i++) {
+
+  if (startIndex === 0) {
+    Deno.writeTextFileSync(outputFile, "[");
+  } else {
+    written = true;
+  }
+
+  for (let i = startIndex; i < length; i++) {
     lemma = lemmas[i];
     rs = Object.assign({}, lemma);
     if (!rs.data) {
       entryCnt++;
       url = `${apiUrl}${lemma.lemma}`;
-      try {
-        response = await fetch(url, {
-          "Content-Type": "text/html",
-        });
+      do {
+        retryCnt = 0;
+        try {
+          response = await fetch(url, {
+            "Content-Type": "text/html",
+          });
 
-        data = await response.text();
-        html = parser.parseFromString(data);
-        content = html.getElementById("page-content");
-        if (content) {
-          outer: for (let j = 0; j < content.childNodes.length; j++) {
-            parentClass = content.childNodes[j].className;
-            if (parentClass === "entry-body") {
-              //console.log("Found entry-body class ...");
-              //Cambridge Vietnamese
-              let node = content.childNodes[j];
-              for (let k = 0; k < node.childNodes.length; k++) {
-                if (node.childNodes[k].className === "pr dictionary") {
-                  let child = node.childNodes[k];
-                  //Only get first definition set
-                  for (let t = 0; t < child.childNodes.length; t++) {
-                    if (child.childNodes[t].className === "link dlink") {
-                      dataCount++;
-                      rs.data = child.childNodes[t].innerHTML;
-                      break outer;
+          data = await response.text();
+          html = parser.parseFromString(data);
+          content = html.getElementById("page-content");
+          if (content) {
+            outer: for (let j = 0; j < content.childNodes.length; j++) {
+              parentClass = content.childNodes[j].className;
+              if (parentClass === "entry-body") {
+                //console.log("Found entry-body class ...");
+                //Cambridge Vietnamese
+                let node = content.childNodes[j];
+                for (let k = 0; k < node.childNodes.length; k++) {
+                  if (node.childNodes[k].className === "pr dictionary") {
+                    let child = node.childNodes[k];
+                    //Only get first definition set
+                    for (let t = 0; t < child.childNodes.length; t++) {
+                      if (child.childNodes[t].className === "link dlink") {
+                        dataCount++;
+                        rs.data = child.childNodes[t].innerHTML;
+                        break outer;
+                      }
                     }
                   }
                 }
-              }
-            } else if (parentClass === "page") {
-              //console.log("Found page class ...");
-              //Cambridge English
-              let node = content.childNodes[j];
-              for (let k = 0; k < node.childNodes.length; k++) {
-                // console.log(
-                //   `Node: ${k}/${node.childNodes.length}, class: ${node.childNodes[k].className}`
-                // );
-                if (node.childNodes[k].className === "pr dictionary") {
-                  let child = node.childNodes[k];
-                  //Only get first definition set
-                  for (let t = 0; t < child.childNodes.length; t++) {
-                    // console.log(
-                    //   `Node: ${t}/${child.childNodes.length}, class: ${child.childNodes[t].className}`
-                    // );
-                    if (child.childNodes[t].className === "link") {
-                      dataCount++;
-                      rs.data = child.childNodes[t].innerHTML;
-                      break outer;
+              } else if (parentClass === "page") {
+                //console.log("Found page class ...");
+                //Cambridge English
+                let node = content.childNodes[j];
+                for (let k = 0; k < node.childNodes.length; k++) {
+                  // console.log(
+                  //   `Node: ${k}/${node.childNodes.length}, class: ${node.childNodes[k].className}`
+                  // );
+                  //First pr dictionary = UK dictionary, second = American dictionary
+                  if (node.childNodes[k].className === "pr dictionary") {
+                    let child = node.childNodes[k];
+                    //Only get first definition set
+                    for (let t = 0; t < child.childNodes.length; t++) {
+                      // console.log(
+                      //   `Node: ${t}/${child.childNodes.length}, class: ${child.childNodes[t].className}`
+                      // );
+                      if (child.childNodes[t].className === "link") {
+                        dataCount++;
+
+                        //Parse and get only meaningful data
+                        rs.data = parseEnData(
+                          child.childNodes[t].innerHTML,
+                          lemma.lemma
+                        );
+                        break outer;
+                      }
                     }
                   }
                 }
               }
             }
+          } else {
+            logger.warning(`Not found page-content of lemma ${lemma.lemma}`);
           }
-        } else {
-          logger.warning(`Not found page-content of lemma ${lemma.lemma}`);
+          //console.log(data);
+
+          //Success, set retry count = 3 to pass do while loop
+          retryCnt = 4;
+        } catch (err) {
+          retryCnt++;
+          console.warn(`Tryed ${retryCnt}. Error: `, err);
+
+          if (retryCnt > 3) {
+            rs.error = { code: 9999, message: err.message };
+          }
+
+          await sleepRandomAmountOfSeconds(3, 5, true);
         }
-        //console.log(data);
-      } catch (err) {
-        console.warn("Error: ", err);
-        rs.error = { code: 9999, message: err.message };
-      }
+      } while (retryCnt <= 3);
 
       await sleepRandomAmountOfSeconds(0.5, 1, true);
     }
 
     results.add(rs);
 
-    if (entryCnt > 0 && entryCnt % 100 === 0 && results.size > 0) {
+    if (entryCnt > 0 && entryCnt % 10 === 0 && results.size > 0) {
       console.log(
-        `Scanned ${entryCnt}/${length} lemmas, data count: ${dataCount}`
+        `Scanned ${entryCnt}/${
+          length - startIndex
+        } lemmas, data count: ${dataCount}`
       );
       const batch = JSON.stringify([...results]);
 
-      if (!written) {
+      if (written) {
         Deno.writeTextFileSync(outputFile, ",", {
           append: true,
         });
@@ -280,8 +312,233 @@ async function lookup(apiUrl, lemmas, outputFile) {
   });
 
   logger.info(
-    `Scanned total ${entryCnt}/${length} lemmas, data count: ${dataCount}`
+    `Finish scanned total ${entryCnt}/${
+      length - startIndex
+    } lemmas, data count: ${dataCount}`
   );
+}
+
+const MEDIA_URL = "https://dictionary.cambridge.org";
+
+function parseEnData(htmlData, lemma) {
+  const data = { vocab: lemma, pron_uk: "", pron_us: "", entries: [] };
+
+  let entry;
+  let def;
+
+  const parser = new DOMParser();
+  const html = parser.parseFromString(htmlData);
+  const childs = html.querySelectorAll(".pr.entry-body__el");
+  for (let i = 0; i < childs.length; i++) {
+    const node = childs[i];
+    entry = {
+      id: `${lemma}.${i + 1}`,
+      uk: "",
+      us: "",
+      pos: "",
+      defs: [],
+      idioms: [],
+      verb_phrases: [],
+    };
+    const titleNode = node.querySelector(".di-title");
+    const posNode = node.querySelector(".pos.dpos");
+    //console.log(`POS: ${posNode.innerText}`);
+    if (posNode) {
+      entry.pos = posNode.innerText.trim();
+    } else {
+      logger.warning(`Not found POS of lemma ${lemma}`);
+    }
+
+    if (titleNode) {
+      const vocab = titleNode.innerText.trim();
+      if (vocab !== lemma) {
+        logger.info(`Found other form of lemma ${lemma} => ${vocab}`);
+        entry.vocab = vocab;
+      }
+    }
+
+    if (entry.pos === "prefix" || entry.pos === "suffix") {
+      if (titleNode) {
+        logger.info(
+          `Ignore prefix/suffix entry ${titleNode.innerText} of lemma ${lemma}`
+        );
+      } else {
+        logger.warning(`Not found title info of lemma ${lemma}`);
+      }
+      continue;
+    }
+
+    const ukNode = node.querySelector(".uk");
+    if (ukNode) {
+      const ukAu = ukNode.querySelector("audio>source[type=audio/mpeg]");
+      //console.log(`UK audio: ${MEDIA_URL}${ukAu.getAttribute("src")}`);
+      if (ukAu) {
+        const path = `${MEDIA_URL}${ukAu.getAttribute("src").trim()}`;
+        if (!data.pron_uk) {
+          data.pron_uk = path;
+        } else {
+          if (data.pron_uk !== path) {
+            entry.pron_uk = path;
+            logger.info(
+              `Found difference UK audio of lemma ${lemma}, entry index: ${i}`
+            );
+          }
+        }
+      } else if (!data.pron_uk) {
+        logger.warning(
+          `Not found UK audio of lemma ${lemma}, entry index: ${i}`
+        );
+      }
+
+      const ukPron = ukNode.querySelector(".pron.dpron");
+      //console.log(`UK pron: ${ukPron.innerText}`);
+
+      if (ukPron) {
+        entry.uk = ukPron.innerText;
+      } else {
+        logger.warning(
+          `Not found UK pron of lemma ${lemma}, entry index: ${i}`
+        );
+      }
+    } else {
+      logger.warning(`Not found UK info of lemma ${lemma}, entry index: ${i}`);
+    }
+
+    const usNode = node.querySelector(".us");
+    if (usNode) {
+      const usAu = usNode.querySelector("audio>source[type=audio/mpeg]");
+      //console.log(`US audio: ${MEDIA_URL}${usAu.getAttribute("src")}`);
+      if (usAu) {
+        const path = `${MEDIA_URL}${usAu.getAttribute("src").trim()}`;
+        if (!data.pron_us) {
+          data.pron_us = path;
+        } else {
+          if (data.pron_us !== path) {
+            entry.pron_us = path;
+            logger.info(
+              `Found difference US audio of lemma ${lemma}, entry index: ${i}`
+            );
+          }
+        }
+      } else if (!data.pron_us) {
+        logger.warning(
+          `Not found US audio of lemma ${lemma}, entry index: ${i}`
+        );
+      }
+
+      const usPron = usNode.querySelector(".pron.dpron");
+      //console.log(`US pron: ${usPron.innerText}`);
+      if (usPron) {
+        entry.us = usPron.innerText;
+      } else {
+        logger.warning(
+          `Not found US pron of lemma ${lemma}, entry index: ${i}`
+        );
+      }
+    } else {
+      logger.warning(`Not found US info of lemma ${lemma}, entry index: ${i}`);
+    }
+
+    const defNodes = node.querySelectorAll(".def-block.ddef_block");
+    //console.log(`Def count: ${defNodes.length}`);
+    for (let j = 0; j < defNodes.length; j++) {
+      const defNode = defNodes[j];
+      def = {
+        id: `${entry.id}.${j + 1}`,
+        def: "",
+        level: "",
+        images: [],
+        examples: [],
+        antonyms: [],
+        synonyms: [],
+        collocations: [],
+      };
+      const levelNode = defNode.querySelector(".epp-xref");
+
+      if (levelNode) {
+        def.level = levelNode.innerText.trim();
+      }
+
+      const dNode = defNode.querySelector(".def.ddef_d.db");
+      if (dNode) {
+        def.def = dNode.innerText.trim();
+        if (def.def.endsWith(":")) {
+          def.def = def.def.substring(0, def.def.length - 1);
+        }
+      } else {
+        logger.warning(`Not found def node of lemma ${lemma}`);
+      }
+
+      const expNodes = defNode.querySelectorAll(".examp.dexamp");
+      if (expNodes.length > 0) {
+        for (let k = 0; k < expNodes.length; k++) {
+          def.examples.push(expNodes[k].innerText.trim());
+        }
+      } else {
+        //Try to find examples in parent node
+        const parentNode = defNode.parentNode;
+        if (parentNode) {
+          const extExamps = parentNode.querySelectorAll(".eg.dexamp");
+
+          for (let m = 0; m < extExamps.length; m++) {
+            def.examples.push(extExamps[m].innerText.trim());
+          }
+        }
+
+        if (def.examples.length > 0) {
+          logger.info(`Found extended examples of lemma ${lemma}`);
+        } else {
+          logger.warning(
+            `Not found examples of lemma ${lemma}, def: ${def.def}`
+          );
+        }
+      }
+
+      if (def.examples.length > 0) {
+        entry.defs.push(def);
+      }
+    }
+
+    let idiomNode = node.querySelector(".xref.idioms");
+    if (!idiomNode) {
+      idiomNode = node.querySelector(".xref.idiom");
+    }
+
+    if (idiomNode) {
+      const itemNodes = idiomNode.querySelectorAll(".item");
+      for (let l = 0; l < itemNodes.length; l++) {
+        entry.idioms.push(itemNodes[l].innerText);
+      }
+
+      if (entry.idioms.length > 0) {
+        logger.info(`Found ${entry.idioms.length} idioms of lemma ${lemma}`);
+      }
+    }
+
+    let phraseVerbNode = node.querySelector(".xref.phrasal_verbs");
+    if (!phraseVerbNode) {
+      phraseVerbNode = node.querySelector(".xref.phrasal_verb");
+    }
+
+    if (phraseVerbNode) {
+      const itemNodes = phraseVerbNode.querySelectorAll(".item");
+      for (let l = 0; l < itemNodes.length; l++) {
+        entry.verb_phrases.push(itemNodes[l].innerText);
+      }
+
+      if (entry.verb_phrases.length > 0) {
+        logger.info(
+          `Found ${entry.verb_phrases.length} phrasal verbs of lemma ${lemma}`
+        );
+      }
+    }
+
+    if (entry.defs.length > 0) {
+      data.entries.push(entry);
+    }
+  }
+
+  return data;
 }
 
 const apiUrl_Vn =
@@ -292,8 +549,27 @@ const apiUrl_En = "https://dictionary.cambridge.org/dictionary/english/";
 const lemmas = await readLemmas(LEMMAS_FILE);
 logger.info(`Found ${lemmas.length} lemmas`);
 
-//await lookup(apiUrl_Vn, lemmas, "./lemmas_cambridge_vn.json");
-await lookup(apiUrl_En, lemmas, "./lemmas_cambridge_en.json");
+const enFile = "./lemmas_cambridge_en.json";
+//const vnFile = "./lemmas_cambridge_vn.json";
+
+const parsedEnLemmas = await readLemmaJson(enFile);
+//const parsedVnLemmas = await readLemmaJson(vnFile);
+
+await lookup(apiUrl_En, lemmas, enFile, parsedEnLemmas.length);
+//await lookup(apiUrl_Vn, lemmas, vnFile, parsedVnLemmas.length);
+
+//TEST ...................................
+
+//const testTxt = await Deno.readTextFile("./testData.json");
+//const testHtml = JSON.parse(testTxt)[0].data;
+//console.log(testHtml);
+
+//const parseResult = parseEnData(testHtml, "be");
+
+//console.log(parseResult);
+
+//Deno.writeTextFileSync("./testDataResult.json", JSON.stringify(parseResult));
+//............................... END TEST
 
 /**
  * RESCAN
@@ -308,4 +584,4 @@ await lookup(apiUrl_En, lemmas, "./lemmas_cambridge_en.json");
  * END RESCAN
  */
 
-logger.info("DONE!");
+//logger.info("DONE!");
