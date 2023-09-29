@@ -1,7 +1,7 @@
 import { log } from "./deps.ts";
 import { DOMParser } from "https://esm.sh/linkedom";
-
-const WORDS_FILE = "./in/test.txt";
+import { sleepRandomAmountOfSeconds } from "https://deno.land/x/sleep/mod.ts";
+const WORDS_FILE = "./in/get_df_2.txt";
 const filePath = "./laban.json";
 
 /**
@@ -77,9 +77,8 @@ async function lookup(words, startIndex) {
   let response;
   let data;
   let wordScanCnt = 0;
-  let html;
+
   const parser = new DOMParser();
-  let content;
   let writeTextCnt = 0;
 
   const jsonFile = await Deno.readTextFile(filePath);
@@ -87,48 +86,110 @@ async function lookup(words, startIndex) {
   let currWord = currLength;
   const dataResult = [];
 
-  try {
-    url = `${api}"chances"`;
-    response = await fetch(url);
-    data = await response.json();
-    const dataHtml = data.enViData.best.details;
-    const html = parser.parseFromString(dataHtml, "text/html");
-    const content = html.querySelectorAll("#content_selectable > div");
+  for (let i = startIndex; i < words.length; i++) {
+    const word = words[i];
+    try {
+      url = `${api}${word}`;
+      response = await fetch(url);
+      data = await response.json();
+      const dataHtml = data?.enViData?.best?.details;
+      const html = parser.parseFromString(dataHtml, "text/html");
+      const content = html.querySelectorAll("#content_selectable > div");
 
-    const result = {};
-    const posArr = [];
+      const result = {};
+      const posArr = [];
 
-    for (let i = 0; i < content.length; i++) {
-      const posClass = content[i].getAttribute("class");
-      if (posClass === "bg-grey bold font-large m-top20") {
-        const posContent = content[i].textContent;
-        posArr.push({ indx: i, value: posContent });
+      for (let k = 0; k < content.length; k++) {
+        const posClass = content[k].getAttribute("class");
+        if (posClass === "bg-grey bold font-large m-top20") {
+          const posContent = content[k].textContent;
+          posArr.push({ indx: k, value: posContent });
+          result[posContent] = [];
+        }
       }
+
+      for (let k = 0; k < content.length; k++) {
+        const defClass = content[k].getAttribute("class");
+        for (let j = 0; j < posArr.length; j++) {
+          const posItem = posArr[j];
+
+          if (
+            j + 1 === posArr.length &&
+            k >= posItem.indx &&
+            defClass === "green margin25 m-top15"
+          ) {
+            const defContent = content[k].textContent;
+            result[posItem.value].push(defContent);
+          } else if (
+            defClass === "green margin25 m-top15" &&
+            k > posItem.indx &&
+            k < posArr[j + 1].indx
+          ) {
+            const defContent = content[k].textContent;
+            result[posItem.value].push(defContent);
+          }
+        }
+      }
+
+      const def = [];
+      const resultConvert = Object.entries(result);
+      for (let k = 0; k < resultConvert.length; k++) {
+        const pos = resultConvert[k][0];
+        const defList = resultConvert[k][1];
+        defList.forEach((item) => {
+          const obj = { pos, def: item };
+          def.push(obj);
+        });
+      }
+
+      dataResult.push({ vocab: word, def: def });
+      wordScanCnt++;
+      currWord++;
+    } catch (err) {
+      dataResult.push({ vocab: word, def: null });
+      wordScanCnt++;
+      currWord++;
+      // logger.warning(err);
     }
 
-    for (let k = 0; k < content.length; k++) {
-      const defClass = content[k].getAttribute("class");
-      if (
-        posArr[0].indx < k &&
-        posArr[1].indx > k &&
-        defClass === "green margin25 m-top15"
-      ) {
-        const defContent = content[k].textContent;
+    if (
+      wordScanCnt === 1000 ||
+      wordScanCnt === words.length - 1000 * writeTextCnt
+    ) {
+      const jsonDataAfterWrite = await Deno.readTextFile(filePath);
 
-        result.vocab = "chances";
-      } else if (posArr[1].indx > k && defClass === "green margin25 m-top15") {
-        const defContent = content[k].textContent;
-        result.push(defContent);
+      if (jsonDataAfterWrite) {
+        if (currWord > JSON.parse(jsonDataAfterWrite).length) {
+          const file = await Deno.open(filePath, {
+            read: true,
+            write: true,
+          });
+
+          const currentSize = (await Deno.stat(filePath)).size;
+
+          const keepSize = currentSize - 1;
+
+          await Deno.truncate(filePath, keepSize);
+
+          file.close();
+          Deno.writeTextFileSync(filePath, `,`, {
+            append: true,
+          });
+          const newDataResult = JSON.stringify(dataResult).slice(1);
+          Deno.writeTextFileSync(filePath, newDataResult, {
+            append: true,
+          });
+        }
+      } else {
+        Deno.writeTextFileSync(filePath, JSON.stringify(dataResult), {
+          append: true,
+        });
       }
+      writeTextCnt++;
+      wordScanCnt = 0;
+      dataResult.splice(0);
+      console.log(currWord);
     }
-    console.log(result);
-    // console.log(posArr);
-    // for (let i = 0; i < listPos.length; i++) {
-    //   console.log(listPos[i].textContent);
-    // }
-    // Deno.writeTextFileSync(filePath, x);
-  } catch (err) {
-    logger.warning(err);
   }
 }
 
@@ -146,9 +207,6 @@ async function scan() {
   logger.info("DONE!");
 }
 
-// const parsedData = await Deno.readTextFile(filePath);
-// const currLength = JSON.parse(parsedData).length;
-// console.log(currLength);
 scan();
 
 const exists = async (filename) => {

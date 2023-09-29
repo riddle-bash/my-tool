@@ -1,5 +1,6 @@
 import { log } from "./deps.ts";
 import { DOMParser } from "https://esm.sh/linkedom";
+import { sleepRandomAmountOfSeconds } from "https://deno.land/x/sleep/mod.ts";
 
 const WORDS_FILE = "./in/get_df_1.txt";
 const MEDIA_URL = "https://dictionary.cambridge.org";
@@ -135,7 +136,9 @@ async function lookup(apiUrl, words, startIndex) {
               .replace(/\n\s*/g, " ")
               .trim();
             const cefrText = cefr[k]?.textContent.trim();
-            const cefrTextFormat = CEFR.find((item) => cefrText.includes(item));
+            const cefrTextFormat = CEFR.find((item) =>
+              cefrText?.includes(item)
+            );
             const posTextContent = pos?.textContent.trim();
             const example = defBlock[k]?.querySelectorAll(".examp.dexamp");
 
@@ -276,9 +279,6 @@ async function scan() {
   logger.info("DONE!");
 }
 
-// const parsedData = await Deno.readTextFile(filePath);
-// const currLength = JSON.parse(parsedData).length;
-// console.log(currLength);
 scan();
 
 const exists = async (filename) => {
