@@ -1,5 +1,5 @@
 import { xlsx } from "https://deno.land/x/flat@0.0.15/src/xlsx.ts";
-const JSONDATA = "./cambridge.json";
+const JSONDATA = "./cambridge2.json";
 const parsedData = await Deno.readTextFile(JSONDATA);
 const dataJson = JSON.parse(parsedData);
 
@@ -67,5 +67,5 @@ const worksheet = xlsx.utils.aoa_to_sheet(data);
 
 xlsx.utils.book_append_sheet(workbook, worksheet, "Sheet1");
 
-const excelFileName = "exported_data_Cambridge.xlsx";
+const excelFileName = "exported_data_Cambridge2.xlsx";
 await xlsx.writeFile(workbook, excelFileName);

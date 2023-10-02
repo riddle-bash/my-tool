@@ -1,5 +1,5 @@
 import { xlsx } from "https://deno.land/x/flat@0.0.15/src/xlsx.ts";
-const JSONDATA = "./laban.json";
+const JSONDATA = "./laban1.json";
 const parsedData = await Deno.readTextFile(JSONDATA);
 const dataJson = JSON.parse(parsedData);
 

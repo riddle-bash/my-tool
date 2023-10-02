@@ -2,9 +2,9 @@ import { log } from "./deps.ts";
 import { DOMParser } from "https://esm.sh/linkedom";
 import { sleepRandomAmountOfSeconds } from "https://deno.land/x/sleep/mod.ts";
 
-const WORDS_FILE = "./in/get_df_1.txt";
+const WORDS_FILE = "./in/get_df_2.txt";
 const MEDIA_URL = "https://dictionary.cambridge.org";
-const filePath = "./cambridge.json";
+const filePath = "./cambridge2.json";
 
 const POS_MAP = {
   noun: "n",

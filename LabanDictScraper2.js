@@ -1,8 +1,8 @@
 import { log } from "./deps.ts";
 import { DOMParser } from "https://esm.sh/linkedom";
 import { sleepRandomAmountOfSeconds } from "https://deno.land/x/sleep/mod.ts";
-const WORDS_FILE = "./in/get_df_2.txt";
-const filePath = "./laban.json";
+const WORDS_FILE = "./in/get_df_1.txt";
+const filePath = "./laban1.json";
 
 /**
  * Init logger
