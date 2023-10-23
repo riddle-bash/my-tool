@@ -4,7 +4,7 @@ import { sleepRandomAmountOfSeconds } from "https://deno.land/x/sleep/mod.ts";
 
 const WORDS_FILE = "./in/get_df_2.txt";
 const MEDIA_URL = "https://dictionary.cambridge.org";
-const filePath = "./cambridge2.json";
+const filePath = "./cambridge4.json";
 
 const POS_MAP = {
   noun: "n",
@@ -121,9 +121,13 @@ async function lookup(apiUrl, words, startIndex) {
         const posBody = content.querySelector(".pos.dpos");
         const ukBody = content.querySelector(".uk.dpron-i");
         const usBody = content.querySelector(".us.dpron-i");
+        // const ampAccordion = content.querySelectorAll(
+        //   ".i-amphtml-element.i-amphtml-layout-container.i-amphtml-built.i-amphtml-layout"
+        // );
 
         const def = [];
         const pronounce = { us: {}, uk: {} };
+        const idiom = [];
 
         defbody.forEach((el) => {
           const defination = el.querySelectorAll(".def.ddef_d.db");
@@ -141,9 +145,12 @@ async function lookup(apiUrl, words, startIndex) {
             );
             const posTextContent = pos?.textContent.trim();
             const example = defBlock[k]?.querySelectorAll(".examp.dexamp");
+            const ampAccordion = defbody[k]?.querySelector("amp-accordion");
 
             let expText = [];
             let posText;
+            let synonyms = [];
+            let relatedWord = [];
             if (posTextContent) {
               posText = posTextContent.toLowerCase();
             } else {
@@ -157,11 +164,38 @@ async function lookup(apiUrl, words, startIndex) {
             for (let j = 0; j < example?.length; j++) {
               expText.push(example[j]?.textContent.trim());
             }
+            // amp
+            const ampHeader = ampAccordion?.querySelector("header");
+
+            if (
+              ampHeader?.textContent.trim() ===
+              "Thesaurus: synonyms, antonyms, and examples"
+            ) {
+              const synonymsList = ampAccordion?.querySelectorAll("li a");
+              synonymsList.forEach((item) =>
+                synonyms.push(item.textContent.trim())
+              );
+            } else if (
+              ampHeader?.textContent.trim() ===
+              "SMART Vocabulary: related words and phrases"
+            ) {
+              const relatedWordList = ampAccordion?.querySelectorAll("li a");
+              relatedWordList?.forEach((item) => {
+                // const posOfRelatedWord = item.querySelector(".pos");
+                // if (!posOfRelatedWord) {
+                const relatedWordNode = item.querySelector(".base");
+                const relatedWordText = relatedWordNode?.textContent.trim();
+                relatedWord.push(relatedWordText);
+                // }
+              });
+            }
             def.push({
               def: definitionText ? definitionText : "",
               cefr: cefrTextFormat ? cefrTextFormat : "",
               pos: posText,
               exp: expText ? expText : [],
+              synonyms,
+              relatedWord,
             });
           }
         });
@@ -199,14 +233,34 @@ async function lookup(apiUrl, words, startIndex) {
           pronounce.us.pronunciation = pronunciationValueUS;
         }
 
+        /* idiom */
+
+        const idiomNode = content.querySelectorAll(
+          ".xref.idioms.hax dxref-w.lmt-25.lmb-25"
+        );
+
+        idiomNode?.forEach((item) => {
+          const idiomListNode = item.querySelectorAll(
+            ".item.lc.lc1.lc-xs6-12.lpb-10.lpr-10"
+          );
+          idiomListNode?.forEach((item) => {
+            const idiomText = item.textContent.trim();
+            idiom.push(idiomText);
+          });
+        });
+
         dataObj.vocab = word;
         dataObj.def = def;
         dataObj.pronounce = pronounce;
+        dataObj.idiom = idiom;
+
         dataResult.push(dataObj);
       } else {
         dataObj.vocab = word;
         dataObj.def = null;
         dataObj.pronounce = null;
+        dataObj.idiom = null;
+
         dataResult.push(dataObj);
       }
       wordScanCnt++;
@@ -215,6 +269,7 @@ async function lookup(apiUrl, words, startIndex) {
       dataObj.vocab = word;
       dataObj.def = null;
       dataObj.pronounce = null;
+      dataObj.idiom = null;
       dataResult.push(dataObj);
       wordScanCnt++;
       currWord++;

@@ -1,11 +1,12 @@
 import { xlsx } from "https://deno.land/x/flat@0.0.15/src/xlsx.ts";
-const JSONDATA = "./cambridge2.json";
+const JSONDATA = "./cambridge4.json";
 const parsedData = await Deno.readTextFile(JSONDATA);
 const dataJson = JSON.parse(parsedData);
 
 const data = dataJson.reduce(
   (acc, curr) => {
     const result = [];
+
     let usPronunciation;
     let usSound;
     let ukPronunciation;
@@ -16,6 +17,7 @@ const data = dataJson.reduce(
       usSound = curr?.pronounce?.us?.sound;
       ukPronunciation = curr?.pronounce?.uk?.pronunciation;
       ukSound = curr?.pronounce?.uk?.sound;
+      const idiom = curr?.idiom;
 
       newObj.push(curr.vocab);
       newObj.push(definition.def);
@@ -26,6 +28,9 @@ const data = dataJson.reduce(
       newObj.push(usSound);
       newObj.push(ukPronunciation);
       newObj.push(ukSound);
+      newObj.push(idiom.join("\n"));
+      newObj.push(definition.synonyms.join("\n"));
+      newObj.push(definition.relatedWord.join("\n"));
       result.push(newObj);
     });
 
@@ -40,6 +45,9 @@ const data = dataJson.reduce(
         usSound ? usSound : "",
         ukPronunciation ? ukPronunciation : "",
         ukSound ? ukSound : "",
+        "",
+        "",
+        "",
       ]);
     }
     // console.log(newObj);
@@ -57,6 +65,9 @@ const data = dataJson.reduce(
       "Sound US",
       "Pronounce UK",
       "Sound UK",
+      "idiom",
+      "synonyms",
+      "relatedWord",
     ],
   ]
 );
@@ -67,5 +78,5 @@ const worksheet = xlsx.utils.aoa_to_sheet(data);
 
 xlsx.utils.book_append_sheet(workbook, worksheet, "Sheet1");
 
-const excelFileName = "exported_data_Cambridge2.xlsx";
+const excelFileName = "exported_data_Cambridge4.xlsx";
 await xlsx.writeFile(workbook, excelFileName);

@@ -3,6 +3,21 @@ const JSONDATA = "./meriam.json";
 const parsedData = await Deno.readTextFile(JSONDATA);
 const dataJson = JSON.parse(parsedData);
 
+const POS_MAP = {
+  noun: "n",
+  adjective: "adj",
+  verb: "v",
+  adverb: "adv",
+  preposition: "prep",
+  pronoun: "pron",
+  conjunction: "conj",
+  aux: "aux",
+  auxiliary: "aux",
+  idiom: "idm",
+  exclamation: "exc",
+  determiner: "det",
+};
+
 const data = dataJson.reduce(
   (acc, curr) => {
     const result = [];
@@ -12,19 +27,34 @@ const data = dataJson.reduce(
 
       newObj.push(curr.vocab);
       newObj.push(definition.def);
-      newObj.push(definition.pos);
+      newObj.push(
+        POS_MAP.hasOwnProperty(definition.pos) ? POS_MAP[definition.pos] : ""
+      );
       newObj.push(definition.exp.join("\n"));
+      newObj.push(definition.pronunciation);
+      newObj.push(definition.synonyms);
+      newObj.push(definition.antonyms);
       result.push(newObj);
     });
 
-    if (curr.def === null || curr.def.length === 0) {
-      result.push([curr.vocab, "", "", ""]);
+    if (curr?.def === null || curr?.def?.length === 0) {
+      result.push([curr.vocab, "", "", "", "", "", ""]);
     }
-    // console.log(newObj);
+
     acc.push(...result);
     return acc;
   },
-  [["Vocabulary", "Definition", "Part of Speech", "Example"]]
+  [
+    [
+      "Vocabulary",
+      "Definition",
+      "Part of Speech",
+      "Example",
+      "Pronunciation",
+      "synonyms",
+      "antonyms",
+    ],
+  ]
 );
 
 const workbook = xlsx.utils.book_new();
