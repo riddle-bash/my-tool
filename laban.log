@@ -1,3 +1,12 @@
 10:44:18 29/09/23 INFO DONE!
 11:07:08 29/09/23 INFO DONE!
 15:32:37 29/09/23 INFO DONE!
+08:27:06 24/07/24 INFO Loaded 1 line of file ./in/test.txt
+08:27:06 24/07/24 WARNING No word form, line: "change"
+08:27:06 24/07/24 INFO Lemma count: 1, total words count: 1 no rank count: 1, no word forms count: 1
+08:27:06 24/07/24 INFO Found 1 words
+08:27:06 24/07/24 INFO Begining scan https://dict.laban.vn ...
+08:27:06 24/07/24 INFO Scanned total 1 words, vi count: 1, en count: 1
+08:27:06 24/07/24 INFO DONE!
+08:30:59 24/07/24 INFO DONE!
+09:05:45 24/07/24 INFO DONE!

@@ -5,7 +5,7 @@ import { download } from './deps.ts'
 import { sleepRandomAmountOfSeconds } from 'https://deno.land/x/sleep/mod.ts'
 import { postgres } from './deps.ts'
 
-const WORD_FILE = './in/get_df_1.txt'
+const WORD_FILE = './in/test.txt'
 
 /**
  * Init logger
@@ -227,6 +227,6 @@ async function lookup(words, outputFile) {
 const words = await readWords(WORD_FILE)
 logger.info(`Found ${words.length} words`)
 
-await lookup(words, './out/df_laban_1.json')
+await lookup(words, './out/test.json')
 
 logger.info('DONE!')

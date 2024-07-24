@@ -1,0 +1,172 @@
+import { log } from './deps.ts'
+import { DOMParser } from 'https://esm.sh/linkedom'
+import { sleepRandomAmountOfSeconds } from 'https://deno.land/x/sleep/mod.ts'
+
+const WORDS_FILE = './in/words.txt'
+const OUTPUT_FILE = './out/collocations.json'
+
+/**
+ * Init logger
+ */
+await log.setup({
+  handlers: {
+    console: new log.handlers.ConsoleHandler('DEBUG'),
+    file: new log.handlers.FileHandler('INFO', {
+      filename: `./scraper.log`,
+      formatter: (logRecord) => {
+        const options = {
+          year: '2-digit',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: false,
+          timeZone: 'Asia/Ho_Chi_Minh',
+        }
+
+        const fmt = new Intl.DateTimeFormat('vi-VN', options)
+        let msg = `${fmt.format(logRecord.datetime)} ${logRecord.levelName} ${
+          logRecord.msg
+        }`
+
+        logRecord.args.forEach((arg, index) => {
+          msg += `, arg${index}: ${arg}`
+        })
+
+        return msg
+      },
+    }),
+  },
+
+  loggers: {
+    default: {
+      level: 'DEBUG',
+      handlers: ['console', 'file'],
+    },
+  },
+})
+
+const logger = log.getLogger()
+
+async function readWords(file) {
+  const words = new Set()
+  try {
+    const texts = await Deno.readTextFile(file)
+    const lines = texts.split('\n').map((txt) => txt.trim())
+    lines.forEach((line) => {
+      if (line.length > 0) {
+        words.add(line)
+      }
+    })
+    logger.info(`Loaded ${words.size} words from ${file}`)
+  } catch (error) {
+    logger.warning(`Failed to read words from ${file}: ${error}`)
+  }
+  return [...words]
+}
+
+async function lookup(words, outputFile) {
+  const baseUrl = 'https://ozdic.com/collocation/'
+  const parser = new DOMParser()
+  const results = []
+
+  for (let i = 0; i < words.length; i++) {
+    const word = words[i]
+    const url = `${baseUrl}${word}.txt`
+    logger.info(`Fetching collocations for word: ${word} from ${url}`)
+
+    try {
+      const response = await fetch(url)
+      const html = await response.text()
+      const document = parser.parseFromString(html, 'text/html')
+
+      const collocations = []
+      let currentMeaning = ''
+      let pos = ''
+
+      document.querySelectorAll('DIV.item').forEach((item) => {
+        item.querySelectorAll('P').forEach((p, index) => {
+          const bElements = p.querySelectorAll('B')
+          const iElement = p.querySelector('I')
+          const uElement = p.querySelector('U')
+          const ttElement = p.querySelector('TT')
+
+          if (ttElement) {
+            currentMeaning = ttElement.textContent.trim()
+          }
+          if (iElement && index === 0) {
+            pos = iElement.textContent.trim()
+          }
+          if (uElement) {
+            let collocationType = uElement.textContent.trim()
+            const example = (iElement?.textContent || '').trim()
+
+            // Combine text from all <B> elements
+            let words = Array.from(bElements)
+              .map((b) => b.textContent.trim())
+              .join(' ')
+              .trim()
+
+            // Remove example from words if it is included
+            if (example) {
+              const exampleIndex = words.indexOf(example)
+              if (exampleIndex !== -1) {
+                words = words.substring(0, exampleIndex).trim()
+              }
+            }
+
+            // Split words by '|' and trim extra spaces
+            words = words
+              .split('|')
+              .map((w) => w.trim())
+              .join(', ')
+
+            // Trim vocab from collocationType if it is included
+            if (collocationType.includes(`${word.toUpperCase()}`)) {
+              collocationType = collocationType
+                .replace(`${word.toUpperCase()} `, '')
+                .trim()
+            }
+
+            collocations.push({
+              collocation: collocationType,
+              meaning: currentMeaning,
+              words: words,
+              example: example,
+            })
+          }
+        })
+      })
+
+      logger.info(
+        `Extracted ${collocations.length} collocations for word: ${word}`
+      )
+      results.push({ vocab: word, pos: pos, collocation: collocations })
+    } catch (error) {
+      logger.warning(`Failed to fetch collocations for word: ${word}: ${error}`)
+      results.push({ vocab: word, pos: null, collocation: null })
+    }
+
+    if (i % 10 === 0) {
+      logger.info(`Processed ${i + 1} words, sleeping for a while...`)
+      await sleepRandomAmountOfSeconds(1, 3)
+    }
+  }
+
+  try {
+    await Deno.writeTextFile(outputFile, JSON.stringify(results, null, 2))
+    logger.info(`Successfully wrote collocations to ${outputFile}`)
+  } catch (error) {
+    logger.warning(`Failed to write collocations to file: ${error}`)
+  }
+}
+
+async function main() {
+  const words = await readWords(WORDS_FILE)
+  logger.info(`Starting lookup for ${words.length} words`)
+  await lookup(words, OUTPUT_FILE)
+  logger.info('DONE!')
+}
+
+main()
