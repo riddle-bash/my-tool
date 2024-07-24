@@ -15,11 +15,12 @@ const rows = []
 dataJson.forEach((entry) => {
   const vocab = entry.vocab
   const pos = entry.pos
+  const meaning = entry.meaning
 
   // Collect collocations and their types
   const collocations = {}
-  entry.collocation.forEach((coll) => {
-    const { collocation, words, example } = coll
+  entry.collocations.forEach((coll) => {
+    const { collocation, words } = coll
     const collocationType = collocation.trim()
 
     // Initialize if not already present
@@ -27,15 +28,14 @@ dataJson.forEach((entry) => {
       collocations[collocationType] = ''
     }
 
-    // Append words and examples to corresponding type
+    // Append words to corresponding type
     collocations[collocationType] +=
       (collocations[collocationType] ? ', ' : '') + words
-    collocations[collocationType] += example ? ` (e.g., ${example})` : ''
     columns.add(collocationType)
   })
 
-  // Prepare row with vocab, pos, and collocations
-  const row = [vocab, pos]
+  // Prepare row with vocab, pos, meaning, and collocations
+  const row = [vocab, pos, meaning]
   Array.from(columns).forEach((col) => {
     row.push(collocations[col] || '')
   })
@@ -43,7 +43,12 @@ dataJson.forEach((entry) => {
 })
 
 // Add header row
-const header = ['Vocabulary', 'Part of Speech', ...Array.from(columns)]
+const header = [
+  'Vocabulary',
+  'Part of Speech',
+  'Meaning',
+  ...Array.from(columns),
+]
 const data = [header, ...rows]
 
 // Create workbook and worksheet

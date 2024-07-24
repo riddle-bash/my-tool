@@ -2,7 +2,7 @@ import { log } from './deps.ts'
 import { DOMParser } from 'https://esm.sh/linkedom'
 import { sleepRandomAmountOfSeconds } from 'https://deno.land/x/sleep/mod.ts'
 
-const WORDS_FILE = './in/words.txt'
+const WORDS_FILE = './in/azvocab_dict_2023_10_03.txt'
 const OUTPUT_FILE = './out/collocations.json'
 
 /**
@@ -74,14 +74,14 @@ async function lookup(words, outputFile) {
   for (let i = 0; i < words.length; i++) {
     const word = words[i]
     const url = `${baseUrl}${word}.txt`
-    logger.info(`Fetching collocations for word: ${word} from ${url}`)
+    console.info(`Fetching collocations for word: ${word} from ${url}`)
 
     try {
       const response = await fetch(url)
       const html = await response.text()
       const document = parser.parseFromString(html, 'text/html')
 
-      const collocations = []
+      const collocationsByMeaning = {}
       let currentMeaning = ''
       let pos = ''
 
@@ -94,6 +94,9 @@ async function lookup(words, outputFile) {
 
           if (ttElement) {
             currentMeaning = ttElement.textContent.trim()
+            if (!collocationsByMeaning[currentMeaning]) {
+              collocationsByMeaning[currentMeaning] = []
+            }
           }
           if (iElement && index === 0) {
             pos = iElement.textContent.trim()
@@ -120,45 +123,71 @@ async function lookup(words, outputFile) {
             words = words
               .split('|')
               .map((w) => w.trim())
-              .join(', ')
+              .join('; ')
+
+            words = words
+              .split(',')
+              .map((w) => w.trim())
+              .join('; ')
 
             // Trim vocab from collocationType if it is included
-            if (collocationType.includes(`${word.toUpperCase()}`)) {
+            if (collocationType.includes(word.toUpperCase())) {
               collocationType = collocationType
-                .replace(`${word.toUpperCase()} `, '')
+                .replace(word.toUpperCase(), '')
                 .trim()
             }
 
-            collocations.push({
+            if (collocationType.includes('.')) {
+              collocationType = collocationType.replace('.', '').trim()
+            }
+
+            // Ensure that currentMeaning is not undefined or empty
+            if (collocationsByMeaning[currentMeaning] === undefined) {
+              collocationsByMeaning[currentMeaning] = []
+            }
+
+            collocationsByMeaning[currentMeaning].push({
               collocation: collocationType,
-              meaning: currentMeaning,
               words: words,
-              example: example,
+              example: example || '', // Ensure example is defined
             })
           }
         })
       })
 
-      logger.info(
-        `Extracted ${collocations.length} collocations for word: ${word}`
+      // Convert collocationsByMeaning to the desired output format
+      const collocations = Object.keys(collocationsByMeaning).map(
+        (meaning) => ({
+          vocab: word,
+          pos: pos,
+          meaning: meaning || '', // Handle empty meaning
+          collocations: collocationsByMeaning[meaning].map((collocation) => ({
+            collocation: collocation.collocation,
+            words: collocation.words,
+          })),
+        })
       )
-      results.push({ vocab: word, pos: pos, collocation: collocations })
+
+      console.info(
+        `Extracted ${collocations.length} meanings with collocations for word: ${word}`
+      )
+      results.push(...collocations)
     } catch (error) {
-      logger.warning(`Failed to fetch collocations for word: ${word}: ${error}`)
-      results.push({ vocab: word, pos: null, collocation: null })
+      console.warn(`Failed to fetch collocations for word: ${word}: ${error}`)
+      results.push({ vocab: word, pos: null, meaning: '', collocations: [] })
     }
 
     if (i % 10 === 0) {
-      logger.info(`Processed ${i + 1} words, sleeping for a while...`)
+      console.info(`Processed ${i + 1} words, sleeping for a while...`)
       await sleepRandomAmountOfSeconds(1, 3)
     }
   }
 
   try {
     await Deno.writeTextFile(outputFile, JSON.stringify(results, null, 2))
-    logger.info(`Successfully wrote collocations to ${outputFile}`)
+    console.info(`Successfully wrote collocations to ${outputFile}`)
   } catch (error) {
-    logger.warning(`Failed to write collocations to file: ${error}`)
+    console.warn(`Failed to write collocations to file: ${error}`)
   }
 }
 
