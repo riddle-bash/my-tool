@@ -2,7 +2,7 @@ import { log } from './deps.ts'
 import { DOMParser } from 'https://esm.sh/linkedom'
 import { sleepRandomAmountOfSeconds } from 'https://deno.land/x/sleep/mod.ts'
 
-const WORDS_FILE = './in/test.txt'
+const WORDS_FILE = './in/azvocab_dict_no_whitespace_07_24.txt'
 const OUTPUT_FILE = './out/collocations.json'
 
 /**
