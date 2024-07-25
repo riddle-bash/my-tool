@@ -2,7 +2,7 @@ import { log } from './deps.ts'
 import { DOMParser } from 'https://esm.sh/linkedom'
 import { sleepRandomAmountOfSeconds } from 'https://deno.land/x/sleep/mod.ts'
 
-const WORDS_FILE = './in/azvocab_dict_2023_10_03.txt'
+const WORDS_FILE = './in/test.txt'
 const OUTPUT_FILE = './out/collocations.json'
 
 /**
@@ -71,6 +71,26 @@ async function lookup(words, outputFile) {
   const parser = new DOMParser()
   const results = []
 
+  const validCollocationTypes = [
+    'VERB+',
+    '+VERB',
+    'ADJ+',
+    '+ADJ',
+    'NOUN+',
+    '+NOUN',
+    'ADV+',
+    '+ADV',
+    'PREP',
+    'VERB',
+    'ADJ',
+    'NOUN',
+    'ADV',
+    'PHRASAL VERB',
+    'IDIOM',
+    'QUANT',
+    // Add other valid collocation types here
+  ]
+
   for (let i = 0; i < words.length; i++) {
     const word = words[i]
     const url = `${baseUrl}${word}.txt`
@@ -102,7 +122,7 @@ async function lookup(words, outputFile) {
             pos = iElement.textContent.trim()
           }
           if (uElement) {
-            let collocationType = uElement.textContent.trim()
+            let collocationType = uElement.textContent.trim().toUpperCase()
             const example = (iElement?.textContent || '').trim()
 
             // Combine text from all <B> elements
@@ -130,27 +150,30 @@ async function lookup(words, outputFile) {
               .map((w) => w.trim())
               .join('; ')
 
-            // Trim vocab from collocationType if it is included
-            if (collocationType.includes(word.toUpperCase())) {
-              collocationType = collocationType
-                .replace(word.toUpperCase(), '')
-                .trim()
+            collocationType = collocationType.replace(/\s+/g, '')
+
+            // Extract valid collocation type
+            let extractedType = ''
+            for (const type of validCollocationTypes) {
+              if (collocationType.includes(type)) {
+                extractedType = type
+                break
+              }
             }
 
-            if (collocationType.includes('.')) {
-              collocationType = collocationType.replace('.', '').trim()
-            }
+            // Check if extractedType is valid
+            if (extractedType) {
+              // Ensure that currentMeaning is not undefined or empty
+              if (collocationsByMeaning[currentMeaning] === undefined) {
+                collocationsByMeaning[currentMeaning] = []
+              }
 
-            // Ensure that currentMeaning is not undefined or empty
-            if (collocationsByMeaning[currentMeaning] === undefined) {
-              collocationsByMeaning[currentMeaning] = []
+              collocationsByMeaning[currentMeaning].push({
+                collocation: extractedType,
+                words: words,
+                example: example || '', // Ensure example is defined
+              })
             }
-
-            collocationsByMeaning[currentMeaning].push({
-              collocation: collocationType,
-              words: words,
-              example: example || '', // Ensure example is defined
-            })
           }
         })
       })
