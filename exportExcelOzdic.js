@@ -4,6 +4,23 @@ import { xlsx } from 'https://deno.land/x/flat@0.0.15/src/xlsx.ts'
 const JSONDATA = './out/collocations.json'
 const excelFileName = 'exported_data_ozdic.xlsx'
 
+// Define the collocation mapping rules based on cleaned POS
+const posCollocationMapping = {
+  adj: {
+    ADV: 'ADV+',
+    VERB: 'VERB+',
+  },
+  verb: {
+    ADV: '+ADV',
+  },
+  'noun VERB': {
+    VERB: 'VERB+',
+  },
+}
+
+// Function to clean POS by removing periods and commas
+const cleanPOS = (pos) => (pos ? pos.replace(/[.,]/g, '').trim() : '')
+
 // Read and parse JSON data
 const parsedData = await Deno.readTextFile(JSONDATA)
 const dataJson = JSON.parse(parsedData)
@@ -14,8 +31,11 @@ const rows = []
 
 dataJson.forEach((entry) => {
   const vocab = entry.vocab
-  const pos = entry.pos
+  const pos = entry.pos ? entry.pos.replace(/[.,]/g, '').trim() : ''
   const meaning = entry.meaning
+
+  // Clean POS, handle null values
+  const cleanedPOS = cleanPOS(pos)
 
   // Collect collocations and their types
   const collocations = {}
@@ -23,19 +43,23 @@ dataJson.forEach((entry) => {
     const { collocation, words } = coll
     const collocationType = collocation.trim()
 
+    // Determine the new collocation type based on the cleaned POS rules
+    const newCollocationType =
+      posCollocationMapping[cleanedPOS]?.[collocationType] || collocationType
+
     // Initialize if not already present
-    if (!collocations[collocationType]) {
-      collocations[collocationType] = ''
+    if (!collocations[newCollocationType]) {
+      collocations[newCollocationType] = ''
     }
 
     // Append words to corresponding type
-    collocations[collocationType] +=
-      (collocations[collocationType] ? ', ' : '') + words
-    columns.add(collocationType)
+    collocations[newCollocationType] +=
+      (collocations[newCollocationType] ? ', ' : '') + words
+    columns.add(newCollocationType)
   })
 
   // Prepare row with vocab, pos, meaning, and collocations
-  const row = [vocab, pos, meaning]
+  const row = [vocab, pos || '', meaning]
   Array.from(columns).forEach((col) => {
     row.push(collocations[col] || '')
   })
