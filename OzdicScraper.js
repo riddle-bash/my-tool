@@ -2,7 +2,7 @@ import { log } from './deps.ts'
 import { DOMParser } from 'https://esm.sh/linkedom'
 import { sleepRandomAmountOfSeconds } from 'https://deno.land/x/sleep/mod.ts'
 
-const WORDS_FILE = './in/azvocab_dict_no_whitespace_07_24.txt'
+const WORDS_FILE = './in/test.txt'
 const OUTPUT_FILE = './out/collocations.json'
 
 /**
@@ -91,6 +91,15 @@ async function lookup(words, outputFile) {
     // Add other valid collocation types here
   ]
 
+  const validPOS = [
+    'noun',
+    'verb',
+    'adj',
+    'adv',
+    'prep',
+    // Add other valid POS types here
+  ]
+
   for (let i = 0; i < words.length; i++) {
     const word = words[i]
     const url = `${baseUrl}${word}.txt`
@@ -101,29 +110,52 @@ async function lookup(words, outputFile) {
       const html = await response.text()
       const document = parser.parseFromString(html, 'text/html')
 
-      const collocationsByMeaning = {}
-      let currentMeaning = ''
-      let pos = ''
+      const collocationsByPOS = {}
 
       document.querySelectorAll('DIV.item').forEach((item) => {
+        let currentPOS = ''
+        let currentMeaning = ''
+
         item.querySelectorAll('P').forEach((p, index) => {
           const bElements = p.querySelectorAll('B')
-          const iElement = p.querySelector('I')
+          const iElements = p.querySelectorAll('I')
           const uElement = p.querySelector('U')
           const ttElement = p.querySelector('TT')
 
           if (ttElement) {
             currentMeaning = ttElement.textContent.trim()
-            if (!collocationsByMeaning[currentMeaning]) {
-              collocationsByMeaning[currentMeaning] = []
+            if (!collocationsByPOS[currentPOS]) {
+              collocationsByPOS[currentPOS] = {}
+            }
+            if (!collocationsByPOS[currentPOS][currentMeaning]) {
+              collocationsByPOS[currentPOS][currentMeaning] = []
             }
           }
-          if (iElement && index === 0) {
-            pos = iElement.textContent.trim()
+
+          // Find the correct POS element
+          for (let j = 0; j < iElements.length; j++) {
+            const iElementText = iElements[j].textContent
+              .trim()
+              .toLowerCase()
+              .replace(/\./g, '')
+            const posArray = iElementText.split(',').map((pos) => pos.trim())
+            const validPOSArray = posArray.filter((pos) =>
+              validPOS.includes(pos)
+            )
+            if (validPOSArray.length > 0) {
+              currentPOS = validPOSArray[0]
+              break
+            }
           }
+
+          // Initialize collocationsByPOS for currentPOS if it hasn't been initialized
+          if (!collocationsByPOS[currentPOS]) {
+            collocationsByPOS[currentPOS] = {}
+          }
+
           if (uElement) {
             let collocationType = uElement.textContent.trim().toUpperCase()
-            const example = (iElement?.textContent || '').trim()
+            const example = (iElements[0]?.textContent || '').trim()
 
             // Combine text from all <B> elements
             let words = Array.from(bElements)
@@ -161,14 +193,14 @@ async function lookup(words, outputFile) {
               }
             }
 
-            // Check if extractedType is valid
-            if (extractedType) {
-              // Ensure that currentMeaning is not undefined or empty
-              if (collocationsByMeaning[currentMeaning] === undefined) {
-                collocationsByMeaning[currentMeaning] = []
+            // Check if extractedType is valid and currentPOS is set
+            if (extractedType && currentPOS) {
+              // Ensure that currentPOS and currentMeaning are not undefined or empty
+              if (!collocationsByPOS[currentPOS][currentMeaning]) {
+                collocationsByPOS[currentPOS][currentMeaning] = []
               }
 
-              collocationsByMeaning[currentMeaning].push({
+              collocationsByPOS[currentPOS][currentMeaning].push({
                 collocation: extractedType,
                 words: words,
                 example: example || '', // Ensure example is defined
@@ -178,23 +210,22 @@ async function lookup(words, outputFile) {
         })
       })
 
-      // Convert collocationsByMeaning to the desired output format
-      const collocations = Object.keys(collocationsByMeaning).map(
-        (meaning) => ({
+      // Convert collocationsByPOS to the desired output format
+      Object.keys(collocationsByPOS).forEach((pos) => {
+        const posMeanings = collocationsByPOS[pos]
+        const collocations = Object.keys(posMeanings).map((meaning) => ({
           vocab: word,
           pos: pos,
           meaning: meaning || '', // Handle empty meaning
-          collocations: collocationsByMeaning[meaning].map((collocation) => ({
+          collocations: posMeanings[meaning].map((collocation) => ({
             collocation: collocation.collocation,
             words: collocation.words,
           })),
-        })
-      )
+        }))
+        results.push(...collocations)
+      })
 
-      console.info(
-        `Extracted ${collocations.length} meanings with collocations for word: ${word}`
-      )
-      results.push(...collocations)
+      console.info(`Extracted collocations for word: ${word}`)
     } catch (error) {
       console.warn(`Failed to fetch collocations for word: ${word}: ${error}`)
       results.push({ vocab: word, pos: null, meaning: '', collocations: [] })
