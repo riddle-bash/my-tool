@@ -2,7 +2,7 @@ import { log } from './deps.ts'
 import { DOMParser } from 'https://esm.sh/linkedom'
 import { sleepRandomAmountOfSeconds } from 'https://deno.land/x/sleep/mod.ts'
 
-const WORDS_FILE = './in/azvocab_dict_no_whitespace_07_24.txt'
+const WORDS_FILE = './in/test.txt'
 const OUTPUT_FILE = './out/collocations.json'
 
 /**
@@ -80,6 +80,8 @@ async function lookup(words, outputFile) {
     '+NOUN',
     'ADV+',
     '+ADV',
+    'PREP+',
+    '+PREP',
     'PREP',
     'VERB',
     'ADJ',
@@ -171,41 +173,84 @@ async function lookup(words, outputFile) {
               }
             }
 
-            // Split words by '|' and trim extra spaces
-            words = words
-              .split('|')
-              .map((w) => w.trim())
-              .join('; ')
-
-            words = words
-              .split(',')
-              .map((w) => w.trim())
-              .join('; ')
-
-            collocationType = collocationType.replace(/\s+/g, '')
-
-            // Extract valid collocation type
-            let extractedType = ''
-            for (const type of validCollocationTypes) {
-              if (collocationType.includes(type)) {
-                extractedType = type
-                break
-              }
+            // Function to remove parentheses and the text inside them
+            function removeParenthesesAndContents(text) {
+              return text.replace(/\(.*?\)/g, '').trim()
             }
 
-            // Check if extractedType is valid and currentPOS is set
-            if (extractedType && currentPOS) {
-              // Ensure that currentPOS and currentMeaning are not undefined or empty
-              if (!collocationsByPOS[currentPOS][currentMeaning]) {
-                collocationsByPOS[currentPOS][currentMeaning] = []
+            // Handle PREP cases with `~` markers
+            if (collocationType.includes('PREP')) {
+              words = words
+                .split('|')
+                .map((word) => {
+                  word = removeParenthesesAndContents(word) // Remove parentheses and their contents
+                  word = word.trim()
+                  if (word.startsWith('~s')) {
+                    return {
+                      collocation: '+PREP',
+                      words: word.replace('~s', '').trim() + 's', // Replace and add 's' back
+                    }
+                  } else if (word.startsWith('~')) {
+                    return {
+                      collocation: '+PREP',
+                      words: word.replace('~', '').trim(),
+                    }
+                  } else if (word.endsWith('~s')) {
+                    return {
+                      collocation: 'PREP+',
+                      words: word.replace('~s', '').trim() + 's', // Replace and add 's' back
+                    }
+                  } else if (word.endsWith('~')) {
+                    return {
+                      collocation: 'PREP+',
+                      words: word.replace('~', '').trim(),
+                    }
+                  }
+                  return { collocation: 'PREP', words: word }
+                })
+                .filter((word) => word.words) // Filter out empty strings
+            } else {
+              // Process other types normally
+              words = words
+                .split('|')
+                .map((w) => removeParenthesesAndContents(w).trim()) // Remove parentheses and their contents
+                .join('; ')
+
+              words = words
+                .split(',')
+                .map((w) => w.trim())
+                .join('; ')
+
+              collocationType = collocationType.replace(/\s+/g, '')
+
+              // Extract valid collocation type
+              let extractedType = ''
+              for (const type of validCollocationTypes) {
+                if (collocationType.includes(type)) {
+                  extractedType = type
+                  break
+                }
               }
 
-              collocationsByPOS[currentPOS][currentMeaning].push({
-                collocation: extractedType,
-                words: words,
-                example: example || '', // Ensure example is defined
-              })
+              // Format as an array for consistency
+              words = [{ collocation: extractedType, words }]
             }
+
+            // Push processed words into collocations
+            words.forEach(({ collocation, words }) => {
+              if (collocation && currentPOS) {
+                // Ensure that currentPOS and currentMeaning are not undefined or empty
+                if (!collocationsByPOS[currentPOS][currentMeaning]) {
+                  collocationsByPOS[currentPOS][currentMeaning] = []
+                }
+
+                collocationsByPOS[currentPOS][currentMeaning].push({
+                  collocation,
+                  words,
+                  example: example || '', // Ensure example is defined
+                })
+              }
+            })
           }
         })
       })
