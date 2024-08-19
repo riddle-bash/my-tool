@@ -40,6 +40,7 @@ posData.forEach(([word, pos]) => {
 
 // Function to check if a word is an adjective
 const hasAdjectivePOS = (word) => posDict[word.toLowerCase()]?.has('adj')
+const hasNounPOS = (word) => posDict[word.toLowerCase()]?.has('n')
 
 // Function to separate and process PREP collocations
 const processPrepCollocations = (words) => {
@@ -116,7 +117,7 @@ dataJson.forEach((entry) => {
         const trimmedWord = word.trim()
         if (hasAdjectivePOS(trimmedWord)) {
           adjWords.push(trimmedWord)
-        } else {
+        } else if (hasNounPOS(trimmedWord)) {
           adjNounWords.push(trimmedWord)
         }
       })
