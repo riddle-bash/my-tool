@@ -41,6 +41,7 @@ posData.forEach(([word, pos]) => {
 // Function to check if a word is an adjective
 const hasAdjectivePOS = (word) => posDict[word.toLowerCase()]?.has('adj')
 const hasNounPOS = (word) => posDict[word.toLowerCase()]?.has('n')
+const isValidWord = (word) => posDict[word.toLowerCase()] !== undefined
 
 // Function to separate and process PREP collocations
 const processPrepCollocations = (words) => {
@@ -60,6 +61,14 @@ const processPrepCollocations = (words) => {
   })
 
   return { prepPlus, plusPrep }
+}
+
+const filterValidCollocations = (collocations, collocationType) => {
+  return collocations
+    .split(';')
+    .map((word) => word.trim())
+    .filter((word) => isValidWord(word))
+    .join('; ')
 }
 
 // Read and parse JSON data
@@ -85,7 +94,24 @@ dataJson.forEach((entry) => {
     const collocationType = collocation.trim()
     const cleanedWords = preprocessWords(words)
 
-    if (collocationType.toLowerCase() === 'prep') {
+    if (
+      collocationType.toLowerCase() === 'verb+' ||
+      collocationType.toLowerCase() === '+verb'
+    ) {
+      const filteredWords = filterValidCollocations(
+        cleanedWords,
+        collocationType
+      )
+
+      if (filteredWords) {
+        if (!collocations[collocationType]) {
+          collocations[collocationType] = ''
+        }
+        collocations[collocationType] +=
+          (collocations[collocationType] ? '; ' : '') + filteredWords
+        columns.add(collocationType)
+      }
+    } else if (collocationType.toLowerCase() === 'prep') {
       const { prepPlus, plusPrep } = processPrepCollocations(cleanedWords)
 
       if (prepPlus.length > 0) {
