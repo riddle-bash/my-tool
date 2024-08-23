@@ -96,7 +96,8 @@ dataJson.forEach((entry) => {
 
     if (
       collocationType.toLowerCase() === 'verb+' ||
-      collocationType.toLowerCase() === '+verb'
+      collocationType.toLowerCase() === '+verb' ||
+      collocationType.toLowerCase() === 'verb'
     ) {
       const filteredWords = filterValidCollocations(
         cleanedWords,
@@ -107,8 +108,17 @@ dataJson.forEach((entry) => {
         if (!collocations[collocationType]) {
           collocations[collocationType] = ''
         }
-        collocations[collocationType] +=
-          (collocations[collocationType] ? '; ' : '') + filteredWords
+        if (
+          collocationType.toLowerCase() === 'verb' &&
+          (pos === 'adj' || pos === 'noun')
+        ) {
+          if (!collocations['VERB+']) collocations['VERB+'] = ''
+          collocations['VERB+'] +=
+            (collocations['VERB+'] ? '; ' : '') + filteredWords
+        } else {
+          collocations[collocationType] +=
+            (collocations[collocationType] ? '; ' : '') + filteredWords
+        }
         columns.add(collocationType)
       }
     } else if (collocationType.toLowerCase() === 'prep') {
