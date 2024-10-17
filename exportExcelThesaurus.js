@@ -14,10 +14,10 @@ async function readWords(file) {
         .map((line) => line.trim())
         .filter((line) => line.length > 0)
     )
-    console.log(`Reading ${words.size} from ${WORDS_FILE}`)
+    console.log(`Reading ${words.size} from ${WORDDATA}`)
     return [...words]
   } catch (error) {
-    console.error(`Failed to read words from ${WORDS_FILE}:`, error)
+    console.error(`Failed to read words from ${WORDDATA}:`, error)
     return []
   }
 }
@@ -161,5 +161,5 @@ xlsx.utils.book_append_sheet(workbook, worksheet, 'Sheet1')
 const date = new Date()
 const timeString = date.getHours() + date.getMinutes() + date.getSeconds()
 // Write to file
-await xlsx.writeFile(workbook, `${exported_thesaurus_data}${timeString}`)
+await xlsx.writeFile(workbook, `exported_thesaurus_data${timeString}.xlsx`)
 console.log(`Successfully exported data to ${OUTPUT}`)
