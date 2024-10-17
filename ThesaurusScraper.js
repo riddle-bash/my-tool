@@ -117,7 +117,7 @@ async function scrapeThesaurus() {
   const results = []
   const origin = await readWords(WORDS_FILE)
 
-  const words = origin.slice(0, 10000)
+  const words = origin.slice(0, 5000)
 
   for (const word of words) {
     const url = `https://www.merriam-webster.com/thesaurus/${word}`

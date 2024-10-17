@@ -7,7 +7,7 @@ if %errorlevel% neq 0 (
 )
 
 rem Run the Deno script with necessary permissions
-deno run --allow-net --allow-env --allow-read --allow-write ./exportExcelOzDic.js
+deno run --allow-net --allow-env --allow-read --allow-write ./exportExcelThesaurus.js
 
 rem Pause the script to see the output
 pause
