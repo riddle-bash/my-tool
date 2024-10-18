@@ -3,7 +3,6 @@ import { DOMParser } from 'https://esm.sh/linkedom'
 
 const WORDS_FILE = './in/azvocab_word_no_whitespace_16_10_24.txt'
 // const WORDS_FILE = './in/test.txt'
-const OUTPUT_FILE = './out/thesaurus_results.json'
 
 async function readWords(file) {
   try {
@@ -14,7 +13,6 @@ async function readWords(file) {
         .map((line) => line.trim())
         .filter((line) => line.length > 0)
     )
-    console.log(`Reading ${words.size} from ${WORDS_FILE}`)
     return [...words]
   } catch (error) {
     console.error(`Failed to read words from ${WORDS_FILE}:`, error)
@@ -117,7 +115,9 @@ async function scrapeThesaurus() {
   const results = []
   const origin = await readWords(WORDS_FILE)
 
-  const words = origin.slice(0, 5000)
+  const words = origin.slice(35001, 40000)
+
+  console.log(`Reading ${words.length} from ${WORDS_FILE}`)
 
   for (const word of words) {
     const url = `https://www.merriam-webster.com/thesaurus/${word}`

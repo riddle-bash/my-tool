@@ -2,8 +2,31 @@ import { xlsx } from 'https://deno.land/x/flat@0.0.15/src/xlsx.ts'
 
 // Input files
 const JSONDATA = './out/thesaurus_results.json'
-const WORDDATA = './in/azvocab_word_no_whitespace_16_10_24.txt'
+const WORDDATA = './in/azvocab_word_18_10_24.txt'
 const OUTPUT = 'exported_thesaurus_data'
+
+const POS_MAP = {
+  noun: 'n',
+  verb: 'v',
+  adjective: 'adj',
+  adverb: 'adv',
+  preposition: 'prep',
+  pronoun: 'pron',
+  phrase: 'phr',
+  'phrasal verb': 'phr.v',
+  'auxiliary verb': 'aux',
+  proverb: 'provb',
+  'modal verb': 'modal verb',
+  idiom: 'idm',
+  exclamation: 'excl',
+  determiner: 'det',
+  conjunction: 'conj',
+  title: 'titl',
+  prefix: 'prefix',
+  suffix: 'suffix',
+  number: 'num',
+  undefined: '-',
+}
 
 async function readWords(file) {
   try {
@@ -32,9 +55,9 @@ const dataJson = JSON.parse(parsedData)
 const wordsArray = await readWords(WORDDATA)
 const validWords = new Set(wordsArray)
 
-dataJson.forEach((item) => {
+dataJson.forEach((item, index) => {
   const vocab = item.vocab
-  const pos = item.pos
+  const pos = POS_MAP[item.pos] || item.pos
   const as_in = item.as_in
   const meaning = item.meaning
 
@@ -57,52 +80,53 @@ dataJson.forEach((item) => {
   const ant_1_1 = []
 
   item.syn_4
-    ?.split(';')
+    ?.split('; ')
     ?.forEach((syn) =>
       validWords.has(syn) ? syn_4.push(syn) : syn_4_1.push(syn)
     )
 
   item.syn_3
-    ?.split(';')
+    ?.split('; ')
     ?.forEach((syn) =>
       validWords.has(syn) ? syn_3.push(syn) : syn_3_1.push(syn)
     )
 
   item.syn_2
-    ?.split(';')
+    ?.split('; ')
     ?.forEach((syn) =>
       validWords.has(syn) ? syn_2.push(syn) : syn_2_1.push(syn)
     )
 
   item.syn_1
-    ?.split(';')
+    ?.split('; ')
     ?.forEach((syn) =>
       validWords.has(syn) ? syn_1.push(syn) : syn_1_1.push(syn)
     )
 
   item.ant_4
-    ?.split(';')
+    ?.split('; ')
     ?.forEach((ant) =>
       validWords.has(ant) ? ant_4.push(ant) : ant_4_1.push(ant)
     )
 
   item.ant_3
-    ?.split(';')
+    ?.split('; ')
     ?.forEach((ant) =>
       validWords.has(ant) ? ant_3.push(ant) : ant_3_1.push(ant)
     )
 
   item.ant_2
-    ?.split(';')
+    ?.split('; ')
     ?.forEach((ant) =>
       validWords.has(ant) ? ant_2.push(ant) : ant_2_1.push(ant)
     )
 
   item.ant_1
-    ?.split(';')
+    ?.split('; ')
     ?.forEach((ant) =>
       validWords.has(ant) ? ant_1.push(ant) : ant_1_1.push(ant)
     )
+
   const row = [
     vocab,
     pos,
@@ -159,7 +183,8 @@ const worksheet = xlsx.utils.aoa_to_sheet(data)
 xlsx.utils.book_append_sheet(workbook, worksheet, 'Sheet1')
 
 const date = new Date()
-const timeString = date.getHours() + date.getMinutes() + date.getSeconds()
+const timeString =
+  date.getHours() + '_' + date.getMinutes() + '_' + date.getSeconds()
 // Write to file
-await xlsx.writeFile(workbook, `exported_thesaurus_data${timeString}.xlsx`)
+await xlsx.writeFile(workbook, `exported_thesaurus_data_${timeString}.xlsx`)
 console.log(`Successfully exported data to ${OUTPUT}`)
