@@ -2,7 +2,7 @@ import { xlsx } from 'https://deno.land/x/flat@0.0.15/src/xlsx.ts'
 
 // Input files
 const JSONDATA = './out/thesaurus_results.json'
-const WORDDATA = './in/azvocab_word_18_10_24.txt'
+const POSDATA = './Lemmas_Export_2024_08_13_08_57.xlsx'
 const OUTPUT = 'exported_thesaurus_data'
 
 const POS_MAP = {
@@ -28,32 +28,38 @@ const POS_MAP = {
   undefined: '-',
 }
 
-async function readWords(file) {
-  try {
-    const texts = await Deno.readTextFile(file)
-    const words = new Set(
-      texts
-        .split('\n')
-        .map((line) => line.trim())
-        .filter((line) => line.length > 0)
-    )
-    console.log(`Reading ${words.size} from ${WORDDATA}`)
-    return [...words]
-  } catch (error) {
-    console.error(`Failed to read words from ${WORDDATA}:`, error)
-    return []
-  }
-}
-
 const rows = []
+
+// Function to clean POS by removing periods and commas
+const cleanPOS = (pos) => (pos ? pos.replace(/[.,]/g, '').trim() : '')
+
+// Read and parse POS data from Excel file
+const posWorkbook = xlsx.readFile(POSDATA)
+const posSheet = posWorkbook.Sheets[posWorkbook.SheetNames[0]]
+const posData = xlsx.utils.sheet_to_json(posSheet, { header: 1 })
+
+// Convert POS data to a dictionary
+const posDict = {}
+posData.forEach(([word, pos]) => {
+  const lowerWord = word.toLowerCase()
+  if (!posDict[lowerWord]) {
+    posDict[lowerWord] = new Set() // Initialize as a Set if it doesn't exist
+  } else if (!(posDict[lowerWord] instanceof Set)) {
+    // Ensure it is a Set even if it already exists
+    posDict[lowerWord] = new Set([posDict[lowerWord]])
+  }
+
+  pos.split(',').forEach((p) => {
+    posDict[lowerWord].add(cleanPOS(p.toLowerCase()))
+  })
+})
+
+// Check exist POS function
+const hasMatchedPOS = (word, pos) => posDict[word.toLowerCase()]?.has(pos)
 
 // Read and parse JSON data
 const parsedData = await Deno.readTextFile(JSONDATA)
 const dataJson = JSON.parse(parsedData)
-
-// Read word data
-const wordsArray = await readWords(WORDDATA)
-const validWords = new Set(wordsArray)
 
 dataJson.forEach((item, index) => {
   const vocab = item.vocab
@@ -82,49 +88,49 @@ dataJson.forEach((item, index) => {
   item.syn_4
     ?.split('; ')
     ?.forEach((syn) =>
-      validWords.has(syn) ? syn_4.push(syn) : syn_4_1.push(syn)
+      hasMatchedPOS(syn, pos) ? syn_4.push(syn) : syn_4_1.push(syn)
     )
 
   item.syn_3
     ?.split('; ')
     ?.forEach((syn) =>
-      validWords.has(syn) ? syn_3.push(syn) : syn_3_1.push(syn)
+      hasMatchedPOS(syn, pos) ? syn_3.push(syn) : syn_3_1.push(syn)
     )
 
   item.syn_2
     ?.split('; ')
     ?.forEach((syn) =>
-      validWords.has(syn) ? syn_2.push(syn) : syn_2_1.push(syn)
+      hasMatchedPOS(syn, pos) ? syn_2.push(syn) : syn_2_1.push(syn)
     )
 
   item.syn_1
     ?.split('; ')
     ?.forEach((syn) =>
-      validWords.has(syn) ? syn_1.push(syn) : syn_1_1.push(syn)
+      hasMatchedPOS(syn, pos) ? syn_1.push(syn) : syn_1_1.push(syn)
     )
 
   item.ant_4
     ?.split('; ')
     ?.forEach((ant) =>
-      validWords.has(ant) ? ant_4.push(ant) : ant_4_1.push(ant)
+      hasMatchedPOS(ant, pos) ? ant_4.push(ant) : ant_4_1.push(ant)
     )
 
   item.ant_3
     ?.split('; ')
     ?.forEach((ant) =>
-      validWords.has(ant) ? ant_3.push(ant) : ant_3_1.push(ant)
+      hasMatchedPOS(ant, pos) ? ant_3.push(ant) : ant_3_1.push(ant)
     )
 
   item.ant_2
     ?.split('; ')
     ?.forEach((ant) =>
-      validWords.has(ant) ? ant_2.push(ant) : ant_2_1.push(ant)
+      hasMatchedPOS(ant, pos) ? ant_2.push(ant) : ant_2_1.push(ant)
     )
 
   item.ant_1
     ?.split('; ')
     ?.forEach((ant) =>
-      validWords.has(ant) ? ant_1.push(ant) : ant_1_1.push(ant)
+      hasMatchedPOS(ant, pos) ? ant_1.push(ant) : ant_1_1.push(ant)
     )
 
   const row = [
