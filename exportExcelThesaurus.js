@@ -60,6 +60,7 @@ const hasMatchedPOS = (word, pos) => posDict[word.toLowerCase()]?.has(pos)
 // Read and parse JSON data
 const parsedData = await Deno.readTextFile(JSONDATA)
 const dataJson = JSON.parse(parsedData)
+const nonExistSet = new Set()
 
 dataJson.forEach((item, index) => {
   const vocab = item.vocab
@@ -85,17 +86,17 @@ dataJson.forEach((item, index) => {
   const ant_1 = []
   const ant_1_1 = []
 
-  item.syn_4
-    ?.split('; ')
-    ?.forEach((syn) =>
-      hasMatchedPOS(syn, pos) ? syn_4.push(syn) : syn_4_1.push(syn)
-    )
+  item.syn_4?.split('; ')?.forEach(
+    (syn) =>
+      // hasMatchedPOS(syn, pos) ? syn_4.push(syn) : syn_4_1.push(syn)
+      hasMatchedPOS(syn, pos) && !nonExistSet.has(syn) && nonExistSet.add(syn)
+  )
 
-  item.syn_3
-    ?.split('; ')
-    ?.forEach((syn) =>
-      hasMatchedPOS(syn, pos) ? syn_3.push(syn) : syn_3_1.push(syn)
-    )
+  item.syn_3?.split('; ')?.forEach(
+    (syn) =>
+      // hasMatchedPOS(syn, pos) ? syn_3.push(syn) : syn_3_1.push(syn)
+      hasMatchedPOS(syn, pos) && !nonExistSet.has(syn) && nonExistSet.add(syn)
+  )
 
   item.syn_2
     ?.split('; ')
@@ -109,17 +110,17 @@ dataJson.forEach((item, index) => {
       hasMatchedPOS(syn, pos) ? syn_1.push(syn) : syn_1_1.push(syn)
     )
 
-  item.ant_4
-    ?.split('; ')
-    ?.forEach((ant) =>
-      hasMatchedPOS(ant, pos) ? ant_4.push(ant) : ant_4_1.push(ant)
-    )
+  item.ant_4?.split('; ')?.forEach(
+    (ant) =>
+      // hasMatchedPOS(ant, pos) ? ant_4.push(ant) : ant_4_1.push(ant)
+      hasMatchedPOS(ant, pos) && !nonExistSet.has(ant) && nonExistSet.add(ant)
+  )
 
-  item.ant_3
-    ?.split('; ')
-    ?.forEach((ant) =>
-      hasMatchedPOS(ant, pos) ? ant_3.push(ant) : ant_3_1.push(ant)
-    )
+  item.ant_3?.split('; ')?.forEach(
+    (ant) =>
+      // hasMatchedPOS(ant, pos) ? ant_3.push(ant) : ant_3_1.push(ant)
+      hasMatchedPOS(ant, pos) && !nonExistSet.has(ant) && nonExistSet.add(ant)
+  )
 
   item.ant_2
     ?.split('; ')
@@ -159,29 +160,31 @@ dataJson.forEach((item, index) => {
 })
 
 // Add header row
-const header = [
-  'Vocabulary',
-  'Part of Speech',
-  'As in',
-  'Meaning',
-  'Strongest Synonyms',
-  'Non-Existing Strongest Synonyms',
-  'Strong Synonyms',
-  'Non-Existing Strong Synonyms',
-  'Moderate Synonyms',
-  'Non-Existing Moderate Synonyms',
-  'Weak Synonyms',
-  'Non-Existing Weak Synonyms',
-  'Strongest Antonyms',
-  'Non-Existing Strongest Antonyms',
-  'Strong Antonyms',
-  'Non-Existing Strong Antonyms',
-  'Moderate Antonyms',
-  'Non-Existing Moderate Antonyms',
-  'Weak Antonyms',
-  'Non-Existing Weak Antonyms',
-]
-const data = [header, ...rows]
+// const header = [
+//   'Vocabulary',
+//   'Part of Speech',
+//   'As in',
+//   'Meaning',
+//   'Strongest Synonyms',
+//   'Non-Existing Strongest Synonyms',
+//   'Strong Synonyms',
+//   'Non-Existing Strong Synonyms',
+//   'Moderate Synonyms',
+//   'Non-Existing Moderate Synonyms',
+//   'Weak Synonyms',
+//   'Non-Existing Weak Synonyms',
+//   'Strongest Antonyms',
+//   'Non-Existing Strongest Antonyms',
+//   'Strong Antonyms',
+//   'Non-Existing Strong Antonyms',
+//   'Moderate Antonyms',
+//   'Non-Existing Moderate Antonyms',
+//   'Weak Antonyms',
+//   'Non-Existing Weak Antonyms',
+// ]
+const header = ['Non-existing word']
+// const data = [header, ...rows]
+const data = [header, Array.from(nonExistSet)]
 
 // Create workbook and worksheet
 const workbook = xlsx.utils.book_new()
@@ -192,5 +195,6 @@ const date = new Date()
 const timeString =
   date.getHours() + '_' + date.getMinutes() + '_' + date.getSeconds()
 // Write to file
-await xlsx.writeFile(workbook, `exported_thesaurus_data_${timeString}.xlsx`)
+// await xlsx.writeFile(workbook, `exported_thesaurus_data_${timeString}.xlsx`)
+await xlsx.writeFile(workbook, `non_exist_thesaurus_word_in_azvocab.xlsx`)
 console.log(`Successfully exported data to ${OUTPUT}`)
