@@ -31,7 +31,13 @@ const POS_MAP = {
 const rows = []
 
 // Function to clean POS by removing periods and commas
-const cleanPOS = (pos) => (pos ? pos.replace(/[.,]/g, '').trim() : '')
+const cleanPOS = (pos) =>
+  pos
+    ? pos
+        .replace(/[.,]/g, '')
+        .replace(/\(\d+\)/g, '')
+        .trim()
+    : ''
 
 // Read and parse POS data from Excel file
 const posWorkbook = xlsx.readFile(POSDATA)
@@ -65,7 +71,7 @@ const nonExistMap = new Map()
 
 dataJson.forEach((item, index) => {
   const vocab = item.vocab
-  const pos = POS_MAP[item.pos] || item.pos
+  const pos = POS_MAP[cleanPOS(item.pos)] || cleanPOS(item.pos)
   const as_in = item.as_in
   const meaning = item.meaning
 
