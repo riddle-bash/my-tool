@@ -56,6 +56,7 @@ posData.forEach(([word, pos]) => {
 
 // Check exist POS function
 const hasMatchedPOS = (word, pos) => posDict[word.toLowerCase()]?.has(pos)
+const isPastTense = (word, pos) => pos === 'v' && word.slice(-2) === 'ed'
 
 // Read and parse JSON data
 const parsedData = await Deno.readTextFile(JSONDATA)
@@ -90,6 +91,7 @@ dataJson.forEach((item, index) => {
     (syn) =>
       // hasMatchedPOS(syn, pos) ? syn_4.push(syn) : syn_4_1.push(syn)
       !hasMatchedPOS(syn, pos) &&
+      !isPastTense(syn, pos) &&
       !nonExistMap.get(syn) &&
       nonExistMap.set(syn, pos)
   )
@@ -98,6 +100,7 @@ dataJson.forEach((item, index) => {
     (syn) =>
       // hasMatchedPOS(syn, pos) ? syn_3.push(syn) : syn_3_1.push(syn)
       !hasMatchedPOS(syn, pos) &&
+      !isPastTense(syn, pos) &&
       !nonExistMap.get(syn) &&
       nonExistMap.set(syn, pos)
   )
@@ -118,6 +121,7 @@ dataJson.forEach((item, index) => {
     (ant) =>
       // hasMatchedPOS(ant, pos) ? ant_4.push(ant) : ant_4_1.push(ant)
       !hasMatchedPOS(ant, pos) &&
+      !isPastTense(ant, pos) &&
       !nonExistMap.get(ant) &&
       nonExistMap.set(ant, pos)
   )
@@ -126,6 +130,7 @@ dataJson.forEach((item, index) => {
     (ant) =>
       // hasMatchedPOS(ant, pos) ? ant_3.push(ant) : ant_3_1.push(ant)
       !hasMatchedPOS(ant, pos) &&
+      !isPastTense(ant, pos) &&
       !nonExistMap.get(ant) &&
       nonExistMap.set(ant, pos)
   )
