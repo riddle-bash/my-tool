@@ -31,12 +31,13 @@ const POS_MAP = {
 const rows = []
 
 // Function to clean POS by removing periods and commas
-const cleanPOS = (pos) =>
+const clean = (pos) =>
   pos
     ? pos
         .replace(/[.,]/g, '')
-        .replace(/\(\d+\)/g, '')
+        .replace(/\(.*?\)/g, '')
         .trim()
+        .toLowerCase()
     : ''
 
 // Read and parse POS data from Excel file
@@ -56,16 +57,15 @@ posData.forEach(([word, pos]) => {
   }
 
   pos.split(',').forEach((p) => {
-    posDict[lowerWord].add(cleanPOS(p.toLowerCase()))
+    posDict[lowerWord].add(clean(p.toLowerCase()))
   })
 })
 
 // Check exist POS function
-const hasMatchedPOS = (word, pos) => posDict[word.toLowerCase()]?.has(pos)
+const hasMatchedPOS = (word, pos) => posDict[clean(word)]?.has(pos)
 const isTensedVerb = (word, pos) =>
   pos === 'v' &&
-  (word.replace(/\(\d+\)/g, '').slice(-2) === 'ed' ||
-    word.replace(/\(\d+\)/g, '').slice(-3) === 'ing')
+  (clean(word).slice(-2) === 'ed' || clean(word).slice(-3) === 'ing')
 
 // Read and parse JSON data
 const parsedData = await Deno.readTextFile(JSONDATA)
@@ -74,7 +74,7 @@ const nonExistMap = new Map()
 
 dataJson.forEach((item, index) => {
   const vocab = item.vocab
-  const pos = POS_MAP[cleanPOS(item.pos)] || cleanPOS(item.pos)
+  const pos = POS_MAP[clean(item.pos)] || clean(item.pos)
   const as_in = item.as_in
   const meaning = item.meaning
 
@@ -97,19 +97,19 @@ dataJson.forEach((item, index) => {
   const ant_1_1 = []
 
   item.syn_4?.split('; ')?.forEach(
-    // (syn) => (hasMatchedPOS(syn, pos) ? syn_4.push(syn) : syn_4_1.push(syn))
-    !hasMatchedPOS(syn, pos) &&
-      !isTensedVerb(syn, pos) &&
-      !nonExistMap.get(syn) &&
-      nonExistMap.set(syn, pos)
+    (syn) => (hasMatchedPOS(syn, pos) ? syn_4.push(syn) : syn_4_1.push(syn))
+    // !hasMatchedPOS(syn, pos) &&
+    // !isTensedVerb(syn, pos) &&
+    // !nonExistMap.get(syn) &&
+    // nonExistMap.set(syn, pos)
   )
 
   item.syn_3?.split('; ')?.forEach(
-    // (syn) => (hasMatchedPOS(syn, pos) ? syn_3.push(syn) : syn_3_1.push(syn))
-    !hasMatchedPOS(syn, pos) &&
-      !isTensedVerb(syn, pos) &&
-      !nonExistMap.get(syn) &&
-      nonExistMap.set(syn, pos)
+    (syn) => (hasMatchedPOS(syn, pos) ? syn_3.push(syn) : syn_3_1.push(syn))
+    // !hasMatchedPOS(syn, pos) &&
+    // !isTensedVerb(syn, pos) &&
+    // !nonExistMap.get(syn) &&
+    // nonExistMap.set(syn, pos)
   )
 
   item.syn_2
@@ -125,19 +125,19 @@ dataJson.forEach((item, index) => {
     )
 
   item.ant_4?.split('; ')?.forEach(
-    // (ant) => (hasMatchedPOS(ant, pos) ? ant_4.push(ant) : ant_4_1.push(ant))
-    !hasMatchedPOS(ant, pos) &&
-      !isTensedVerb(ant, pos) &&
-      !nonExistMap.get(ant) &&
-      nonExistMap.set(ant, pos)
+    (ant) => (hasMatchedPOS(ant, pos) ? ant_4.push(ant) : ant_4_1.push(ant))
+    // !hasMatchedPOS(ant, pos) &&
+    // !isTensedVerb(ant, pos) &&
+    // !nonExistMap.get(ant) &&
+    // nonExistMap.set(ant, pos)
   )
 
   item.ant_3?.split('; ')?.forEach(
-    // (ant) => (hasMatchedPOS(ant, pos) ? ant_3.push(ant) : ant_3_1.push(ant))
-    !hasMatchedPOS(ant, pos) &&
-      !isTensedVerb(ant, pos) &&
-      !nonExistMap.get(ant) &&
-      nonExistMap.set(ant, pos)
+    (ant) => (hasMatchedPOS(ant, pos) ? ant_3.push(ant) : ant_3_1.push(ant))
+    // !hasMatchedPOS(ant, pos) &&
+    // !isTensedVerb(ant, pos) &&
+    // !nonExistMap.get(ant) &&
+    // nonExistMap.set(ant, pos)
   )
 
   item.ant_2
@@ -178,31 +178,31 @@ dataJson.forEach((item, index) => {
 })
 
 // Add header row
-// const header = [
-//   'Vocabulary',
-//   'Part of Speech',
-//   'As in',
-//   'Meaning',
-//   'Strongest Synonyms',
-//   'Non-Existing Strongest Synonyms',
-//   'Strong Synonyms',
-//   'Non-Existing Strong Synonyms',
-//   'Moderate Synonyms',
-//   'Non-Existing Moderate Synonyms',
-//   'Weak Synonyms',
-//   'Non-Existing Weak Synonyms',
-//   'Strongest Antonyms',
-//   'Non-Existing Strongest Antonyms',
-//   'Strong Antonyms',
-//   'Non-Existing Strong Antonyms',
-//   'Moderate Antonyms',
-//   'Non-Existing Moderate Antonyms',
-//   'Weak Antonyms',
-//   'Non-Existing Weak Antonyms',
-// ]
-const header = ['Non-existing word', 'Part of Speech']
-// const data = [header, ...rows]
-const data = [header, ...Array.from(nonExistMap)]
+const header = [
+  'Vocabulary',
+  'Part of Speech',
+  'As in',
+  'Meaning',
+  'Strongest Synonyms',
+  'Non-Existing Strongest Synonyms',
+  'Strong Synonyms',
+  'Non-Existing Strong Synonyms',
+  'Moderate Synonyms',
+  'Non-Existing Moderate Synonyms',
+  'Weak Synonyms',
+  'Non-Existing Weak Synonyms',
+  'Strongest Antonyms',
+  'Non-Existing Strongest Antonyms',
+  'Strong Antonyms',
+  'Non-Existing Strong Antonyms',
+  'Moderate Antonyms',
+  'Non-Existing Moderate Antonyms',
+  'Weak Antonyms',
+  'Non-Existing Weak Antonyms',
+]
+// const header = ['Non-existing word', 'Part of Speech']
+const data = [header, ...rows]
+// const data = [header, ...Array.from(nonExistMap)]
 
 // console.log(Array.from(nonExistMap))
 
