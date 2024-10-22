@@ -60,7 +60,7 @@ const hasMatchedPOS = (word, pos) => posDict[word.toLowerCase()]?.has(pos)
 // Read and parse JSON data
 const parsedData = await Deno.readTextFile(JSONDATA)
 const dataJson = JSON.parse(parsedData)
-const nonExistSet = new Set()
+const nonExistMap = new Map()
 
 dataJson.forEach((item, index) => {
   const vocab = item.vocab
@@ -89,13 +89,17 @@ dataJson.forEach((item, index) => {
   item.syn_4?.split('; ')?.forEach(
     (syn) =>
       // hasMatchedPOS(syn, pos) ? syn_4.push(syn) : syn_4_1.push(syn)
-      hasMatchedPOS(syn, pos) && !nonExistSet.has(syn) && nonExistSet.add(syn)
+      !hasMatchedPOS(syn, pos) &&
+      !nonExistMap.get(syn) &&
+      nonExistMap.set(syn, pos)
   )
 
   item.syn_3?.split('; ')?.forEach(
     (syn) =>
       // hasMatchedPOS(syn, pos) ? syn_3.push(syn) : syn_3_1.push(syn)
-      hasMatchedPOS(syn, pos) && !nonExistSet.has(syn) && nonExistSet.add(syn)
+      !hasMatchedPOS(syn, pos) &&
+      !nonExistMap.get(syn) &&
+      nonExistMap.set(syn, pos)
   )
 
   item.syn_2
@@ -113,13 +117,17 @@ dataJson.forEach((item, index) => {
   item.ant_4?.split('; ')?.forEach(
     (ant) =>
       // hasMatchedPOS(ant, pos) ? ant_4.push(ant) : ant_4_1.push(ant)
-      hasMatchedPOS(ant, pos) && !nonExistSet.has(ant) && nonExistSet.add(ant)
+      !hasMatchedPOS(ant, pos) &&
+      !nonExistMap.get(ant) &&
+      nonExistMap.set(ant, pos)
   )
 
   item.ant_3?.split('; ')?.forEach(
     (ant) =>
       // hasMatchedPOS(ant, pos) ? ant_3.push(ant) : ant_3_1.push(ant)
-      hasMatchedPOS(ant, pos) && !nonExistSet.has(ant) && nonExistSet.add(ant)
+      !hasMatchedPOS(ant, pos) &&
+      !nonExistMap.get(ant) &&
+      nonExistMap.set(ant, pos)
   )
 
   item.ant_2
@@ -182,9 +190,11 @@ dataJson.forEach((item, index) => {
 //   'Weak Antonyms',
 //   'Non-Existing Weak Antonyms',
 // ]
-const header = ['Non-existing word']
+const header = ['Non-existing word', 'Part of Speech']
 // const data = [header, ...rows]
-const data = [header, Array.from(nonExistSet)]
+const data = [header, ...Array.from(nonExistMap)]
+
+// console.log(Array.from(nonExistMap))
 
 // Create workbook and worksheet
 const workbook = xlsx.utils.book_new()
