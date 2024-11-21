@@ -395,4 +395,6 @@ async function excel2Json(inFile, outFile) {
 
 //await json2Excel('./in/missing_def.json', './out/missing_defs')
 
-await excel2Json('./in/error_missing_defs.xlsx', './out/error_missing_defs')
+//await excel2Json('./in/error_missing_defs.xlsx', './out/error_missing_defs')
+
+await excel2Json('./in/BNC_COCA_lists.xlsx', './out/BNC_COCA_lists')
