@@ -1,0 +1,320 @@
+// Import necessary modules
+// import {
+//   readTextFile,
+//   writeTextFile,
+// } from 'https://deno.land/std@0.203.0/fs/mod.ts'
+import {
+  join,
+  extname,
+  basename,
+  dirname,
+} from 'https://deno.land/std@0.224.0/path/mod.ts'
+import { walk } from 'https://deno.land/std@0.224.0/fs/walk.ts'
+import { createHmac } from 'node:crypto'
+
+const secretKey = 'azVocab@localization@2024' // Use a securely stored secret key
+
+const PROMPT = `
+Please act as a native <native> speaker and localize the following labels into <language>. Ensure the translations are accurate and contextually appropriate, using professional phrasing suitable for production applications.
+
+Guidelines:
+Do not translate variables or URL values. Exclude Pinyin, romanizations, comments, explanations, and transliterations.
+Replace only the English text values while preserving the exact JSON key-value structure from the input.
+Ensure the output is in valid JSON format, ready for programmatic extraction, with no comments or extra content.
+Each translation must accurately convey the original meaning and meet professional standards.
+
+Input:
+<input>
+
+Expected Output:
+
+{
+  // The structure from the input JSON remains the same.
+  // Replace only the English text values with accurate <language> translations.
+}
+
+`
+
+const LOCALE_MAP = {
+  ar: { native: 'Arabic', language: 'Arabic' },
+  bn: { native: 'Bengali', language: 'Bengali' },
+  cs: { native: 'Czech', language: 'Czech' },
+  de: { native: 'German', language: 'German' },
+  el: { native: 'Greek', language: 'Greek' },
+  en: { native: 'English', language: 'English' },
+  es: { native: 'Spanish', language: 'Spanish' },
+  fr: { native: 'French', language: 'French' },
+  hi: { native: 'Hindi', language: 'Hindi' },
+  hu: { native: 'Hungarian', language: 'Hungarian' },
+  id: { native: 'Indonesian', language: 'Indonesian' },
+  it: { native: 'Italian', language: 'Italian' },
+  ja: { native: 'Japanese', language: 'Japanese' },
+  ko: { native: 'Korean', language: 'Korean' },
+  nl: { native: 'Dutch', language: 'Dutch' },
+  pl: { native: 'Polish', language: 'Polish' },
+  pt: { native: 'Portuguese', language: 'Portuguese' },
+  ro: { native: 'Romanian', language: 'Romanian' },
+  ru: { native: 'Russian', language: 'Russian' },
+  sv: { native: 'Swedish', language: 'Swedish' },
+  te: { native: 'Telugu', language: 'Telugu' },
+  th: { native: 'Thai', language: 'Thai' },
+  tl: { native: 'Filipino', language: 'Filipino' },
+  tr: { native: 'Turkish', language: 'Turkish' },
+  uk: { native: 'Ukrainian', language: 'Ukrainian' },
+  ur: { native: 'Urdu-speaking', language: 'Urdu' },
+  vi: { native: 'Vietnamese', language: 'Vietnamese' },
+  zh: { native: 'Chinese', language: 'Simplified Chinese' },
+}
+
+/**
+ * Utility function to extract data from json notation
+ * @param {*} str
+ * @returns
+ */
+const extractJson = (text) => {
+  const str = text.trim()
+
+  let firstOpen = str.indexOf('{')
+  let firstClose
+  let candidate
+
+  while (firstOpen !== -1) {
+    firstClose = str.lastIndexOf('}')
+    if (firstClose <= firstOpen) {
+      console.error('firstClose <= firstOpen. Not found json result:', str)
+      return null
+    }
+
+    while (firstClose > firstOpen) {
+      candidate = str.substring(firstOpen, firstClose + 1)
+      try {
+        let res = JSON.parse(candidate)
+        let trimedJson = candidate
+          .trim()
+          .substr(1, candidate.length - 1)
+          .trim()
+
+        if (trimedJson.endsWith('}')) {
+          trimedJson = trimedJson.substring(0, trimedJson.length - 1)
+        }
+
+        return trimedJson
+      } catch (e) {
+        console.log('Parse json error:', candidate)
+        firstClose = str.substr(0, firstClose).lastIndexOf('}')
+      }
+    }
+    firstOpen = str.indexOf('{', firstOpen + 1)
+  }
+
+  console.error('Not found json result:', str)
+  return null
+}
+
+/**
+ * Utility function to scan public/locales diretory to construct source file path and destination file path base on locale
+ *
+ * @param {*} sourceDir
+ * @param {*} locale
+ * @param {*} destinationDir
+ * @returns
+ */
+const scanDir = async (sourceDir, locale, destinationDir) => {
+  const enDir = join(sourceDir, 'en') // Define the 'en' subfolder path
+  const result = []
+
+  for await (const entry of walk(enDir, { includeDirs: false })) {
+    if (extname(entry.path) === '.json') {
+      // Check if the file ends with .json
+      const fileName = basename(entry.path) // Extract only the file name
+      const destinationFilePath = join(destinationDir, locale, fileName) // Construct destination path
+
+      result.push({
+        sourceFilePath: entry.path,
+        destinationFilePath,
+      })
+    }
+  }
+
+  return result
+}
+
+/**
+ * Utility function to read source file, call api to translate and save to destination file
+ *
+ * @param {*} sourceFilePath
+ * @param {*} destinationFilePath
+ * @param {*} locale
+ */
+const translateAndSave = async (
+  sourceFilePath,
+  destinationFilePath,
+  locale
+) => {
+  //const apiEndpoint = 'https://dev.azvocab.ai/api/internal/localize'
+  const apiEndpoint = 'https://dev.azvocab.ai/api/internal/localize'
+  const maxBatchSize = 2000 // Maximum characters per batch
+
+  // Step 1: Read the source file
+  const fileContent = await Deno.readTextFile(sourceFilePath)
+  const content = fileContent
+    .trim()
+    .split('\n')
+    .map((line) => line.trim())
+
+  const lines = content.slice(1, content.length - 1)
+
+  // Step 2: Prepare batches based on maxBatchSize
+  let currentBatch = []
+  let currentBatchSize = 0
+  const batches = []
+
+  lines.forEach((line) => {
+    const lineLength = line.length
+
+    if (currentBatchSize + lineLength > maxBatchSize) {
+      // Push the current batch to batches and reset
+      batches.push(currentBatch.join('\n'))
+      currentBatch = []
+      currentBatchSize = 0
+    }
+
+    currentBatch.push(line)
+    currentBatchSize += lineLength
+  })
+
+  if (currentBatch.length > 0) {
+    batches.push(currentBatch.join('\n')) // Add the last batch
+  }
+
+  // Step 3: Translate each batch and store results
+  const translatedLines = []
+
+  for (const text of batches) {
+    const paramInfo = LOCALE_MAP[locale]
+
+    if (!paramInfo) {
+      console.error(`Parameter information not found for locale: ${locale}`)
+      return
+    }
+
+    let batch = text.trim()
+
+    if (batch.endsWith(',')) {
+      batch = batch.substring(0, batch.length - 1)
+    }
+
+    const prompt = PROMPT.replaceAll('<language>', paramInfo.language)
+      .replaceAll('<native>', paramInfo.native)
+      .replace('<input>', batch)
+
+    const timestamp = Date.now() // Current timestamp in milliseconds
+    const payload = JSON.stringify({ prompt, timestamp })
+
+    const hmac = createHmac('sha256', secretKey)
+    hmac.update(payload)
+    const checksum = hmac.digest('hex')
+
+    let tried = 3
+
+    while (tried > 0) {
+      try {
+        const response = await fetch(apiEndpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: checksum,
+          },
+          body: payload,
+        })
+
+        if (!response.ok) {
+          console.error(`Failed to translate batch: ${response.statusText}`)
+          return
+        }
+
+        const { translatedText } = await response.json()
+        const result = extractJson(translatedText)
+
+        console.log('--------------->', batch.length)
+        console.log(result)
+        console.log('<---------------')
+
+        if (result) {
+          translatedLines.push(
+            ...result
+              .split('\n')
+              .filter((line) => line.trim().length > 0)
+              .map((line) => {
+                const tmp = line.trim()
+                if (tmp.endsWith(',')) {
+                  return `  ${tmp}`
+                } else {
+                  return `  ${tmp},`
+                }
+              })
+          )
+
+          break
+        } else {
+          tried = tried - 1
+          console.warn('Translate error, retry...')
+          await new Promise((resolve) => setTimeout(resolve, 3000))
+        }
+      } catch (err) {
+        tried = tried - 1
+        console.warn('Translate error, retry...')
+        await new Promise((resolve) => setTimeout(resolve, 3000))
+      }
+    }
+
+    if (tried === 0) {
+      throw new Error('Translate maximum retried error!')
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 2000))
+  }
+
+  // Step 4: Save the translated content to the destination file
+  const resultContent = translatedLines.join('\n').replace(/,$/, '') // Remove trailing comma
+
+  // Ensure the parent directory exists
+  const parentDir = dirname(destinationFilePath)
+  await Deno.mkdir(parentDir, { recursive: true })
+
+  await Deno.writeTextFile(destinationFilePath, `{\n${resultContent}\n}`)
+  console.log(`Translated content saved to ${destinationFilePath}`)
+}
+
+/**
+ * Main function
+ */
+const main = async () => {
+  const sourceDir = 'C:\\Users\\thangqm\\My Workspace\\azVocab\\public\\locales'
+  const destDir = 'C:\\Users\\thangqm\\Downloads\\locales'
+
+  const locale = 'ur'
+
+  const files = await scanDir(sourceDir, locale, destDir)
+
+  for (let i = 0; i < files.length; i++) {
+    const { sourceFilePath, destinationFilePath } = files[i]
+
+    // if (i > 0) {
+    //   console.log('Testing, ignore file:', sourceFilePath)
+    //   continue
+    // }
+
+    console.log('Processing file:', sourceFilePath)
+    await translateAndSave(sourceFilePath, destinationFilePath, locale)
+
+    await new Promise((resolve) => setTimeout(resolve, 3000))
+  }
+}
+
+await main()
+
+/**
+ * Command:
+ * deno run --allow-read --allow-write --allow-net localize.js
+ */
