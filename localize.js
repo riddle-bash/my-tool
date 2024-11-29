@@ -41,7 +41,7 @@ const LOCALE_MAP = {
   cs: { native: 'Czech', language: 'Czech' },
   de: { native: 'German', language: 'German' },
   el: { native: 'Greek', language: 'Greek' },
-  en: { native: 'English', language: 'English' },
+  //en: { native: 'English', language: 'English' },
   es: { native: 'Spanish', language: 'Spanish' },
   fr: { native: 'French', language: 'French' },
   hi: { native: 'Hindi', language: 'Hindi' },
@@ -62,7 +62,7 @@ const LOCALE_MAP = {
   tr: { native: 'Turkish', language: 'Turkish' },
   uk: { native: 'Ukrainian', language: 'Ukrainian' },
   ur: { native: 'Urdu-speaking', language: 'Urdu' },
-  vi: { native: 'Vietnamese', language: 'Vietnamese' },
+  //vi: { native: 'Vietnamese', language: 'Vietnamese' },
   zh: { native: 'Chinese', language: 'Simplified Chinese' },
 }
 
@@ -120,19 +120,34 @@ const extractJson = (text) => {
  * @returns
  */
 const scanDir = async (sourceDir, locale, destinationDir) => {
-  const enDir = join(sourceDir, 'en') // Define the 'en' subfolder path
+  const isWeb = MODE.indexOf('WEB') > -1 ? true : false
+  const isMobile = MODE.indexOf('MOBILE') > -1 ? true : false
+
+  const enDir = join(sourceDir, isWeb ? 'en' : '') // Define the 'en' subfolder path
   const result = []
 
   for await (const entry of walk(enDir, { includeDirs: false })) {
     if (extname(entry.path) === '.json') {
       // Check if the file ends with .json
       const fileName = basename(entry.path) // Extract only the file name
-      const destinationFilePath = join(destinationDir, locale, fileName) // Construct destination path
 
-      result.push({
-        sourceFilePath: entry.path,
-        destinationFilePath,
-      })
+      const destinationFilePath = isWeb
+        ? join(destinationDir, locale, fileName)
+        : join(destinationDir, `${locale}.json`) // Construct destination path
+
+      if (isMobile) {
+        if (fileName === 'en.json') {
+          result.push({
+            sourceFilePath: entry.path,
+            destinationFilePath,
+          })
+        }
+      } else {
+        result.push({
+          sourceFilePath: entry.path,
+          destinationFilePath,
+        })
+      }
     }
   }
 
@@ -151,7 +166,8 @@ const translateAndSave = async (
   destinationFilePath,
   locale
 ) => {
-  //const apiEndpoint = 'https://dev.azvocab.ai/api/internal/localize'
+  const isAdd = MODE.indexOf('ADD') > -1 ? true : false
+
   const apiEndpoint = 'https://dev.azvocab.ai/api/internal/localize'
   const maxBatchSize = 2000 // Maximum characters per batch
 
@@ -162,7 +178,26 @@ const translateAndSave = async (
     .split('\n')
     .map((line) => line.trim())
 
-  const lines = content.slice(1, content.length - 1)
+  const allLines = content.slice(1, content.length - 1)
+
+  let lines = []
+
+  if (isAdd) {
+    //Find the last block separate by at least two empty line
+    let idx = -1
+    for (let i = allLines.length - 1; i > 0; i--) {
+      if (allLines[i].length === 0 && allLines[i + 1]?.length > 0) {
+        idx = i + 1
+        break
+      }
+    }
+
+    if (idx > -1 && idx < allLines.length) {
+      lines = allLines.slice(idx).filter((line) => line.length > 0)
+    }
+  } else {
+    lines = allLines.filter((line) => line.length > 0)
+  }
 
   // Step 2: Prepare batches based on maxBatchSize
   let currentBatch = []
@@ -200,6 +235,10 @@ const translateAndSave = async (
 
     let batch = text.trim()
 
+    if (batch.length <= 3) {
+      continue
+    }
+
     if (batch.endsWith(',')) {
       batch = batch.substring(0, batch.length - 1)
     }
@@ -219,26 +258,29 @@ const translateAndSave = async (
 
     while (tried > 0) {
       try {
-        const response = await fetch(apiEndpoint, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: checksum,
-          },
-          body: payload,
-        })
+        const response = TEST
+          ? await dummyApi(batch)
+          : await fetch(apiEndpoint, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: checksum,
+              },
+              body: payload,
+            })
+
+        let result = null
 
         if (!response.ok) {
           console.error(`Failed to translate batch: ${response.statusText}`)
-          return
+        } else {
+          const { translatedText } = await response.json()
+          result = extractJson(translatedText)
+
+          console.log('--------------->', batch.length)
+          console.log(result)
+          console.log('<---------------')
         }
-
-        const { translatedText } = await response.json()
-        const result = extractJson(translatedText)
-
-        console.log('--------------->', batch.length)
-        console.log(result)
-        console.log('<---------------')
 
         if (result) {
           translatedLines.push(
@@ -259,12 +301,12 @@ const translateAndSave = async (
         } else {
           tried = tried - 1
           console.warn('Translate error, retry...')
-          await new Promise((resolve) => setTimeout(resolve, 3000))
+          await new Promise((resolve) => setTimeout(resolve, 2000))
         }
       } catch (err) {
         tried = tried - 1
         console.warn('Translate error, retry...')
-        await new Promise((resolve) => setTimeout(resolve, 3000))
+        await new Promise((resolve) => setTimeout(resolve, 2000))
       }
     }
 
@@ -272,43 +314,82 @@ const translateAndSave = async (
       throw new Error('Translate maximum retried error!')
     }
 
-    await new Promise((resolve) => setTimeout(resolve, 2000))
+    await new Promise((resolve) => setTimeout(resolve, TEST ? 0 : 2000))
   }
 
   // Step 4: Save the translated content to the destination file
-  const resultContent = translatedLines.join('\n').replace(/,$/, '') // Remove trailing comma
+  if (translatedLines.length > 0) {
+    const resultContent = translatedLines.join('\n').replace(/,$/, '') // Remove trailing comma
 
-  // Ensure the parent directory exists
-  const parentDir = dirname(destinationFilePath)
-  await Deno.mkdir(parentDir, { recursive: true })
+    // Ensure the parent directory exists
+    const parentDir = dirname(destinationFilePath)
+    await Deno.mkdir(parentDir, { recursive: true })
 
-  await Deno.writeTextFile(destinationFilePath, `{\n${resultContent}\n}`)
-  console.log(`Translated content saved to ${destinationFilePath}`)
+    await Deno.writeTextFile(destinationFilePath, `{\n${resultContent}\n}`)
+    console.log(`Translated content saved to ${destinationFilePath}`)
+  }
 }
 
 /**
  * Main function
  */
+
+//MODE: INIT_WEB, INIT_MOBILE, ADD_WEB, ADD_MOBILE
+const MODE = 'ADD_MOBILE' // localize some addition label
+const TEST = false
+
+// Dummy API function
+const dummyApi = async (input) => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      const translatedText = `\`\`\`json\n{\n${input}\n}\n\`\`\``
+
+      resolve({
+        ok: true,
+        json: async () => ({ translatedText }),
+      })
+    }, 0) // Simulate a delay for testing
+  })
+}
+
 const main = async () => {
-  const sourceDir = 'C:\\Users\\thangqm\\My Workspace\\azVocab\\public\\locales'
-  const destDir = 'C:\\Users\\thangqm\\Downloads\\locales'
+  let sourceDir = ''
+  let destDir = ''
 
-  const locale = 'ur'
+  if (MODE.indexOf('WEB') > -1) {
+    sourceDir = 'C:\\Users\\thangqm\\My Workspace\\azVocab\\public\\locales'
 
-  const files = await scanDir(sourceDir, locale, destDir)
+    if (MODE.indexOf('ADD') > -1) {
+      destDir = 'C:\\Users\\thangqm\\Downloads\\locales\\WEB\\ADD'
+    } else {
+      destDir = 'C:\\Users\\thangqm\\Downloads\\locales\\WEB\\INIT'
+    }
+  } else {
+    sourceDir = 'C:\\Users\\thangqm\\My Workspace\\mobileapp\\azvocab\\locales'
 
-  for (let i = 0; i < files.length; i++) {
-    const { sourceFilePath, destinationFilePath } = files[i]
+    if (MODE.indexOf('ADD') > -1) {
+      destDir = 'C:\\Users\\thangqm\\Downloads\\locales\\MOBILE\\ADD'
+    } else {
+      destDir = 'C:\\Users\\thangqm\\Downloads\\locales\\MOBILE\\INIT'
+    }
+  }
 
-    // if (i > 0) {
-    //   console.log('Testing, ignore file:', sourceFilePath)
-    //   continue
-    // }
+  const locales = Object.keys(LOCALE_MAP)
 
-    console.log('Processing file:', sourceFilePath)
-    await translateAndSave(sourceFilePath, destinationFilePath, locale)
+  for (let i = 0; i < locales.length; i++) {
+    const locale = locales[i]
 
-    await new Promise((resolve) => setTimeout(resolve, 3000))
+    const files = await scanDir(sourceDir, locale, destDir)
+
+    for (let i = 0; i < files.length; i++) {
+      const { sourceFilePath, destinationFilePath } = files[i]
+
+      console.log(`Processing ${sourceFilePath} -> ${destinationFilePath}`)
+
+      await translateAndSave(sourceFilePath, destinationFilePath, locale)
+
+      //await new Promise((resolve) => setTimeout(resolve, 3000))
+    }
   }
 }
 
