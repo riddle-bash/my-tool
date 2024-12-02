@@ -9,6 +9,7 @@ import {
   basename,
   dirname,
 } from 'https://deno.land/std@0.224.0/path/mod.ts'
+import { existsSync } from 'https://deno.land/std/fs/mod.ts'
 import { walk } from 'https://deno.land/std@0.224.0/fs/walk.ts'
 import { createHmac } from 'node:crypto'
 
@@ -321,12 +322,27 @@ const translateAndSave = async (
   if (translatedLines.length > 0) {
     const resultContent = translatedLines.join('\n').replace(/,$/, '') // Remove trailing comma
 
-    // Ensure the parent directory exists
-    const parentDir = dirname(destinationFilePath)
-    await Deno.mkdir(parentDir, { recursive: true })
+    if (existsSync(destinationFilePath)) {
+      // Read the existing file
+      const existingContent = await Deno.readTextFile(destinationFilePath)
 
-    await Deno.writeTextFile(destinationFilePath, `{\n${resultContent}\n}`)
-    console.log(`Translated content saved to ${destinationFilePath}`)
+      // Append the new content before the closing bracket
+      const updatedContent = existingContent.replace(
+        /\}\s*$/,
+        `,\n${resultContent}\n}`
+      )
+
+      // Write the updated content back to the file
+      await Deno.writeTextFile(destinationFilePath, updatedContent)
+      console.log(`Content appended to ${destinationFilePath}`)
+    } else {
+      // Ensure the parent directory exists
+      const parentDir = dirname(destinationFilePath)
+      await Deno.mkdir(parentDir, { recursive: true })
+
+      await Deno.writeTextFile(destinationFilePath, `{\n${resultContent}\n}`)
+      console.log(`Translated content saved to ${destinationFilePath}`)
+    }
   }
 }
 
@@ -335,7 +351,7 @@ const translateAndSave = async (
  */
 
 //MODE: INIT_WEB, INIT_MOBILE, ADD_WEB, ADD_MOBILE
-const MODE = 'ADD_MOBILE' // localize some addition label
+const MODE = 'ADD_WEB' // localize some addition label
 const TEST = false
 
 // Dummy API function
@@ -358,20 +374,22 @@ const main = async () => {
 
   if (MODE.indexOf('WEB') > -1) {
     sourceDir = 'C:\\Users\\thangqm\\My Workspace\\azVocab\\public\\locales'
+    destDir = sourceDir
 
-    if (MODE.indexOf('ADD') > -1) {
-      destDir = 'C:\\Users\\thangqm\\Downloads\\locales\\WEB\\ADD'
-    } else {
-      destDir = 'C:\\Users\\thangqm\\Downloads\\locales\\WEB\\INIT'
-    }
+    // if (MODE.indexOf('ADD') > -1) {
+    //   destDir = 'C:\\Users\\thangqm\\Downloads\\locales\\WEB\\ADD'
+    // } else {
+    //   destDir = 'C:\\Users\\thangqm\\Downloads\\locales\\WEB\\INIT'
+    // }
   } else {
     sourceDir = 'C:\\Users\\thangqm\\My Workspace\\mobileapp\\azvocab\\locales'
+    destDir = sourceDir
 
-    if (MODE.indexOf('ADD') > -1) {
-      destDir = 'C:\\Users\\thangqm\\Downloads\\locales\\MOBILE\\ADD'
-    } else {
-      destDir = 'C:\\Users\\thangqm\\Downloads\\locales\\MOBILE\\INIT'
-    }
+    // if (MODE.indexOf('ADD') > -1) {
+    //   destDir = 'C:\\Users\\thangqm\\Downloads\\locales\\MOBILE\\ADD'
+    // } else {
+    //   destDir = 'C:\\Users\\thangqm\\Downloads\\locales\\MOBILE\\INIT'
+    // }
   }
 
   const locales = Object.keys(LOCALE_MAP)
@@ -388,7 +406,7 @@ const main = async () => {
 
       await translateAndSave(sourceFilePath, destinationFilePath, locale)
 
-      //await new Promise((resolve) => setTimeout(resolve, 3000))
+      await new Promise((resolve) => setTimeout(resolve, 1000))
     }
   }
 }
