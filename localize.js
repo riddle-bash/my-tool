@@ -1,8 +1,3 @@
-// Import necessary modules
-// import {
-//   readTextFile,
-//   writeTextFile,
-// } from 'https://deno.land/std@0.203.0/fs/mod.ts'
 import {
   join,
   extname,
@@ -33,8 +28,12 @@ Expected Output:
   // The structure from the input JSON remains the same.
   // Replace only the English text values with accurate <language> translations.
 }
-
 `
+
+/**
+ * Notes: Some special languages need to remove _other to display correctly:
+ * ar, cs, pl, ro, ru, uk
+ */
 
 const LOCALE_MAP = {
   ar: { native: 'Arabic', language: 'Arabic' },
