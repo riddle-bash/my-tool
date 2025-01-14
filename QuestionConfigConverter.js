@@ -1,6 +1,11 @@
 import { xlsx } from 'https://deno.land/x/flat@0.0.15/src/xlsx.ts'
 
 const map1 = {
+  'Example Image - Word Matching': 'Example_Image_Word_Match',
+  'Example Image - Word Typing': 'Example_Image_Word_Type',
+  'Example Image - Word Unscramble': 'Example_Image_Word_Unscramble',
+  'Example Image - Word Completing': 'Example_Image_Word_MissingChar',
+  'Example Image - Word Selecting': 'Example_Image_Word_Selection',
   'Audio - Word Matching': 'Audio_Word_Match',
   'Audio - Word Selecting': 'Audio_Word_Selection',
   'Audio - Word Typing': 'Audio_Word_Type',
@@ -40,8 +45,16 @@ const map1 = {
   'Word - Audio Selecting': 'Word_Audio_Selection',
   'Audio - Image Selecting': 'Audio_Image_Selection',
 }
-
 const map2 = {
+  SP_IM_WD_MT: 'Example_Image_Word_Match',
+  SP_IM_WD_SL: 'Example_Image_Word_Selection',
+  SP_IM_WD_US: 'Example_Image_Word_Unscramble',
+  SP_IM_WD_MS: 'Example_Image_Word_MissingChar',
+  SP_IM_WD_TY: 'Example_Image_Word_Type',
+  ST_CO_SL: 'Sentence_Collocation_Selection',
+  WD_CO_MT: 'Word_Collocation_Match',
+  WD_CO_SL: 'Word_Collocation_Selection',
+  SP_FA_SL: 'Example_WordFamily_Selection',
   AU_WD_SL: 'Audio_Word_Selection',
   AU_WD_US: 'Audio_Word_Unscramble',
   AU_WD_MT: 'Audio_Word_Match',
@@ -66,9 +79,6 @@ const map2 = {
   SY_WD_TY: 'Synonym_Word_Type',
   SP_WD_TY: 'Sample_Word_Type',
   ST_US: 'Sentence_Unscramble',
-  ST_CO_SL: 'Sentence_Collocation_Selection',
-  WD_CO_MT: 'Word_Collocation_Match',
-  WD_CO_SL: 'Word_Collocation_Selection',
   ST_WF_SL: 'Sentence_WordForm_Selection',
   AU_WD_MS: 'Audio_Word_MissingChar',
   IM_WD_MS: 'Image_Word_MissingChar',
@@ -83,7 +93,7 @@ const map2 = {
 }
 
 // Read the Excel file
-const configFile = xlsx.readFile('./Book3.xlsx')
+const configFile = xlsx.readFile('./Book4.xlsx')
 const configSheet = configFile.Sheets[configFile.SheetNames[0]]
 
 // Convert sheet to JSON
@@ -126,4 +136,3 @@ await Deno.writeTextFile(
   './out/optional.json',
   JSON.stringify(optional, null, 2)
 )
-console.log(JSON.stringify(alternative))
