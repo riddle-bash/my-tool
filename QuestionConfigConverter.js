@@ -1,6 +1,10 @@
 import { xlsx } from 'https://deno.land/x/flat@0.0.15/src/xlsx.ts'
 
 const map1 = {
+  'Example - Collocation Selecting': 'Sentence_Collocation_Selection',
+  'Word - Collocation Matching': 'Word_Collocation_Match',
+  'Word - Collocation Selecting': 'Word_Collocation_Selection',
+  'Example - Word Family Selecting': 'Example_WordFamily_Selection',
   'Example Image - Word Matching': 'Example_Image_Word_Match',
   'Example Image - Word Typing': 'Example_Image_Word_Type',
   'Example Image - Word Unscramble': 'Example_Image_Word_Unscramble',
@@ -21,13 +25,10 @@ const map1 = {
   'Example - Synonym Selecting': 'Sample_Synonym_Selection',
   'Example - Word Selecting': 'Sample_Word_Selection',
   'Example - Word Typing': 'Sample_Word_Type',
-  'Sentence - Collocation Selection': 'Sentence_Collocation_Selection',
   'Example Unscrambling': 'Sentence_Unscramble',
   'Sentence - Word Form Selection': 'Sentence_WordForm_Selection',
   'Word - Synonym Typing': 'Synonym_Word_Type',
   'Word - Antonym Selecting': 'Word_Antonym_Selection',
-  'Word - Collocation Matching': 'Word_Collocation_Match',
-  'Word - Collocation Selection': 'Word_Collocation_Selection',
   'Word - Definition Matching': 'Word_Definition_Match',
   'Word - Definition Selecting': 'Word_Definition_Selection',
   'Word - Image Matching': 'Word_Image_Match',
@@ -45,16 +46,17 @@ const map1 = {
   'Word - Audio Selecting': 'Word_Audio_Selection',
   'Audio - Image Selecting': 'Audio_Image_Selection',
 }
+
 const map2 = {
+  ST_CO_SL: 'Sentence_Collocation_Selection',
+  WD_CO_MT: 'Word_Collocation_Match',
+  WD_CO_SL: 'Word_Collocation_Selection',
+  SP_FA_SL: 'Example_WordFamily_Selection',
   SP_IM_WD_MT: 'Example_Image_Word_Match',
   SP_IM_WD_SL: 'Example_Image_Word_Selection',
   SP_IM_WD_US: 'Example_Image_Word_Unscramble',
   SP_IM_WD_MS: 'Example_Image_Word_MissingChar',
   SP_IM_WD_TY: 'Example_Image_Word_Type',
-  ST_CO_SL: 'Sentence_Collocation_Selection',
-  WD_CO_MT: 'Word_Collocation_Match',
-  WD_CO_SL: 'Word_Collocation_Selection',
-  SP_FA_SL: 'Example_WordFamily_Selection',
   AU_WD_SL: 'Audio_Word_Selection',
   AU_WD_US: 'Audio_Word_Unscramble',
   AU_WD_MT: 'Audio_Word_Match',
@@ -93,7 +95,7 @@ const map2 = {
 }
 
 // Read the Excel file
-const configFile = xlsx.readFile('./Book4.xlsx')
+const configFile = xlsx.readFile('./Book5.xlsx')
 const configSheet = configFile.Sheets[configFile.SheetNames[0]]
 
 // Convert sheet to JSON

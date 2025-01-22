@@ -15,3 +15,4 @@ def dumpquote(file_path):
 # Example usage
 dumpquote('./out/alternative.json')
 dumpquote('./out/optional.json')
+dumpquote('./out/stage.json')
