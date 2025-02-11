@@ -350,7 +350,7 @@ const translateAndSave = async (
  */
 
 //MODE: INIT_WEB, INIT_MOBILE, ADD_WEB, ADD_MOBILE
-const MODE = 'ADD_MOBILE' // localize some addition label
+const MODE = 'ADD_WEB' // localize some addition label
 const TEST = false
 
 // Dummy API function
@@ -372,7 +372,9 @@ const main = async () => {
   let destDir = ''
 
   if (MODE.indexOf('WEB') > -1) {
+    // sourceDir = 'C:\\Workspace\\azvocab\\public\\locales'
     sourceDir = 'C:\\Users\\thangqm\\My Workspace\\azVocab\\public\\locales'
+
     destDir = sourceDir
 
     // if (MODE.indexOf('ADD') > -1) {
@@ -381,7 +383,9 @@ const main = async () => {
     //   destDir = 'C:\\Users\\thangqm\\Downloads\\locales\\WEB\\INIT'
     // }
   } else {
+    // sourceDir = 'C:\\Workspace\\azvocab-app\\locales'
     sourceDir = 'C:\\Users\\thangqm\\My Workspace\\mobileapp\\azvocab\\locales'
+
     destDir = sourceDir
 
     // if (MODE.indexOf('ADD') > -1) {
