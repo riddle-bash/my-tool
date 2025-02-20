@@ -10,6 +10,7 @@ lerna-debug.log*
 #ouput data process
 out/
 locales/
+test/
 
 *.rar
 
