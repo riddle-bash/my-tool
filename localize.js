@@ -373,7 +373,8 @@ const main = async () => {
 
   if (MODE.indexOf('WEB') > -1) {
     // sourceDir = 'C:\\Workspace\\azvocab\\public\\locales'
-    sourceDir = 'C:\\Users\\thangqm\\My Workspace\\azVocab\\public\\locales'
+    // sourceDir = 'C:\\Users\\thangqm\\My Workspace\\azVocab\\public\\locales'
+    sourceDir = '../azvocab-web/public/locales'
 
     destDir = sourceDir
 
@@ -384,7 +385,8 @@ const main = async () => {
     // }
   } else {
     // sourceDir = 'C:\\Workspace\\azvocab-app\\locales'
-    sourceDir = 'C:\\Users\\thangqm\\My Workspace\\mobileapp\\azvocab\\locales'
+    // sourceDir = 'C:\\Users\\thangqm\\My Workspace\\mobileapp\\azvocab\\locales'
+    sourceDir = '../azvocab-mobile/locales'
 
     destDir = sourceDir
 
