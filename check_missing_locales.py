@@ -65,7 +65,7 @@ def merge_localizations(existing_data, missing_data):
     return existing_data
 
 if __name__ == "__main__":
-    root_directory = "../school/src/features"  # Change this to your project directory
+    root_directory = "../school/src"  # Change this to your project directory
     json_file_path = "../school/src/locales/en.json"  # Path to localization JSON file
 
     missing = find_localized_keys(root_directory, json_file_path)

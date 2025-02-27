@@ -14,12 +14,12 @@ def process_json_files(folder_path):
                 data = file.readlines()
 
             # Remove lines 757 to 766 (line indices 756 to 765)
-            if len(data) >= 766:
-                del data[756:766]
+            if len(data) >= 776:
+                del data[776:778]
 
             # Remove the comma at the end of line 755 (line index 756)
-            if len(data) > 755 and data[755].strip().endswith(','):
-                data[755] = data[755].rstrip(',\n') + '\n'
+            if len(data) > 775 and data[775].strip().endswith(','):
+                data[775] = data[775].rstrip(',\n') + '\n'
 
             # Write the modified content back to the file
             with open(file_path, 'w', encoding='utf-8') as file:
@@ -31,5 +31,5 @@ def process_json_files(folder_path):
             print(f"Error processing {file_name}: {e}")
 
 # Replace 'your_folder_path' with the path to your folder containing the JSON files
-folder_path = './locales'
+folder_path = '../azvocab-app/locales'
 process_json_files(folder_path)
