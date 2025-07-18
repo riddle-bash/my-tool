@@ -12,6 +12,7 @@ out/
 locales/
 test/
 downloaded_images/
+in/
 
 *.rar
 
