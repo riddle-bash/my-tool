@@ -11,6 +11,7 @@ lerna-debug.log*
 out/
 locales/
 test/
+downloaded_images/
 
 *.rar
 
