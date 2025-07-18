@@ -1,5 +1,6 @@
 import requests
 import os
+from urllib.parse import unquote
 
 # Paste your string of URLs (each URL on a new line)
 raw_urls = """
@@ -97,6 +98,8 @@ os.makedirs(output_folder, exist_ok=True)
 # Download each image
 for url in image_urls:
     filename = url.split("/")[-1]
+    # Decode URL-encoded characters in filename
+    filename = unquote(filename)
     print(f"Downloading {url}...")
 
     try:
