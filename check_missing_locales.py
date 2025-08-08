@@ -31,6 +31,9 @@ def find_localized_keys(root_dir, json_path):
                             if len(parts) < 2:
                                 continue  # Skip invalid keys
                             category, key = parts[0], '.'.join(parts[1:])
+    
+                            if not category or not key:  # <- Skip empty category or key
+                                continue
                             
                             if category not in localization_data:
                                 missing_keys.setdefault(category, {})
