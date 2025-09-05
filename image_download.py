@@ -88,8 +88,22 @@ https://demo.tienganhk12.com/Upload/Exam/637147895575078390_Artboard%20Copy%2016
 https://demo.tienganhk12.com/Upload/Exam/638872485986028073_6%20T%E1%BB%95ng%20%C3%B4n%20TV.png
 """  # <-- paste here
 
+raw_urls_2 = """https://demo.tienganhk12.com/Upload/Quiz/banners/%C4%90%C4%83ng%20k%C3%BD%20l%C3%A0m%20%C4%90S.png
+https://demo.tienganhk12.com/Upload/Quiz/banners/Nang%20cao%20Tieng%20Anh.png
+https://demo.tienganhk12.com/Upload/Quiz/banners/On%20thi%20vao%206.png
+https://demo.tienganhk12.com/Upload/Quiz/banners/On%20thi%20vao%2010.png
+https://demo.tienganhk12.com/Upload/Quiz/banners/On%20thi%20vao%20DH.png
+https://demo.tienganhk12.com/Upload/Quiz/banners/Hoc%20tot%20Toan,%20TA.png
+https://demo.tienganhk12.com/Upload/Quiz/banners/Contuhoc.com.png
+https://demo.tienganhk12.com/Upload/Quiz/banners/azVocab%20tagline%20(1).png
+https://demo.tienganhk12.com/Upload/Quiz/banners/Thi%20th%E1%BB%AD%20v%C3%A0o%2010%20HN%20banner%20sidebar.png
+https://demo.tienganhk12.com/Upload/Quiz/Ban%20c%E1%BB%91%20v%E1%BA%A5n/C%C3%B4%20M%E1%BB%99c%20Lan%20(vu%C3%B4ng).png
+https://demo.tienganhk12.com/Upload/templates/CoPhuongAnh.png
+https://demo.tienganhk12.com/Upload/templates/CoNganHa.png
+https://demo.tienganhk12.com/Upload/DownloadImages/1339637838004349293849.jpg"""
+
 # Split the string into individual URLs, stripping empty lines
-image_urls = [line.strip() for line in raw_urls.strip().splitlines() if line.strip()]
+image_urls = [line.strip() for line in raw_urls_2.strip().splitlines() if line.strip()]
 
 # Folder to save images
 output_folder = "downloaded_images"
