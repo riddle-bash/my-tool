@@ -54,8 +54,59 @@ def parse_reading_table(page_text):
             
     return {"activities_completed": activities_completed, "data": records}
 
-def parse_writing_assignments_from_lines(lines, all_answers_lines):          
-    assignments_completed = len(lines)
+def parse_open_ended_writing_activities_from_lines(lines, all_answers_lines):
+    activity_blocks = []
+    current = []
+    for line in lines:
+        if line.startswith("No.:") and current:
+            activity_blocks.append(current)
+            current = [line]
+        else:
+            current.append(line)
+    if current:
+        activity_blocks.append(current)
+    activities = []
+    for blockIdx, block in enumerate(activity_blocks):
+        no = None
+        title = None
+        lexile = None
+        question = None
+        question_text = []
+        submitted_on = None
+        for idx, line in enumerate(block):
+            if line == "There is no data available.":
+                return {"activities_completed": 0, "data": []}
+            if line.startswith("No.:"):
+                m = re.search(r"No\.:\s*(\d+)", line)
+                no = int(m.group(1)) if m else None
+            elif line.startswith("Title:"):
+                title = line.replace("Title:", "").strip()
+            elif line.startswith("Lexile"):
+                m = re.search(r"Lexile.*?:\s*(\S+)", line)
+                lexile = m.group(1) if m else None
+            elif line.startswith("Question:"):
+                m = re.match(r"Question:\s*(\d+)(?:\s*Submitted on:\s*(.*))?", line)
+                if m:
+                    question = m.group(1)
+                    submitted_on = m.group(2).strip() if m.group(2) else None
+            elif ((blockIdx >= len(all_answers_lines)) or not any(ans == line for ans in all_answers_lines[blockIdx])) and len(line.split()) > 1:
+                if (line == "There is no data available."): 
+                    continue
+                question_text.append(line)
+        activities.append({
+            "no": no,
+            "title": title,
+            "lexile": lexile,
+            "question": question,
+            "question_text": " ".join(question_text).strip(),
+            "submitted_on": submitted_on,
+            "answer": ", ".join(all_answers_lines[blockIdx]) if blockIdx < len(all_answers_lines) else ""
+        })
+    return {"activities_completed": len(activities), "data": activities}
+
+def parse_writing_assignments_from_lines(lines, all_answers_lines):
+    if len(lines) < 3:
+        return {"assignments_completed": 0, "data": []}
     # The rest are assignment blocks
     assignment_blocks = []
     current = []
@@ -98,49 +149,101 @@ def parse_writing_assignments_from_lines(lines, all_answers_lines):
             "assignment": " ".join(block[assignment_text_start_line:]),
             "student_response": " ".join(answer_lines)
         })
-    return {"assignments_completed": assignments_completed, "data": assignments}
+    return {"assignments_completed": len(all_answers_lines), "data": assignments}
 
 def parse_student(pdf, start_page, num_pages):
     pages_text = [pdf.pages[start_page + i].extract_text() for i in range(num_pages)]
     student = parse_student_info(pages_text[0])
     student['reading_activities'] = parse_reading_table(pages_text[1]) if len(pages_text) > 1 else {"activities_completed": 0, "data": []}
-    # Adaptive writing assignments: last page, and next page if it looks like a continuation
-    writing_pages = []
-    writing_page_indices = []
-    # Always include the last page
-    writing_pages.append(pages_text[-1])
-    writing_page_indices.append(start_page + num_pages - 1)
-    # Check if next page exists and is a writing continuation
-    next_page_idx = start_page + num_pages
-    if next_page_idx < len(pdf.pages):
-        next_page_text = pdf.pages[next_page_idx].extract_text()
-        if next_page_text and ("Writing Assignments" in next_page_text or next_page_text.strip().startswith(("No.:", "Title:"))):
-            writing_pages.append(next_page_text)
-            writing_page_indices.append(next_page_idx)
+
+    open_ended_lines = []
+    last_open_ended_page = -1
+    open_ended_answers_lines = []
+
+    for idx, page in enumerate(pages_text):
+        if ("Open-ended Writing Activities" in page):
+            lines = [ln.strip() for ln in page.splitlines() if ln.strip()]
+            if len(lines) > 7:
+                # Remove first 6 and last 2 lines (header/footer)
+                lines = lines[6:-1]
+            else:
+                lines = []
+            open_ended_lines.extend(lines)
+            # Extract highlighted lines (answers) from the page
+            highlighted_lines = extract_highlighted_lines(pdf.pages[start_page + idx])
+            if highlighted_lines:
+                open_ended_answers_lines.append(highlighted_lines)
+            else:
+                open_ended_answers_lines.append([])
+        elif ("Writing Assignments" in page):
+            last_open_ended_page = idx
+            break
+
+    student['open_ended_writing_activities'] = parse_open_ended_writing_activities_from_lines(open_ended_lines, open_ended_answers_lines) if open_ended_lines else {"activities_completed": 0, "data": []}
+
     writing_lines = []
     all_answers_lines = []
-    for idx, wp in enumerate(writing_pages):
-        lines = [ln.strip() for ln in wp.splitlines() if ln.strip()]
-        if len(lines) > 7:
-            if idx == len(writing_pages) - 1:
-                # Last writing page: remove first 6 and last 2 lines
-                lines = lines[6:-2]
+    for idx, page in enumerate(pages_text[last_open_ended_page:]):
+        if ("Writing Assignments" in page):
+            lines = [ln.strip() for ln in page.splitlines() if ln.strip()]
+            if len(lines) > 7:
+                if start_page + idx == len(pages_text) - 1:
+                    lines = lines[6:-2]
+                else:
+                    lines = lines[6:-1]
             else:
-                # Other writing pages: remove first 6 and last line
-                lines = lines[6:-1]
-        else:
-            lines = []
-        writing_lines.extend(lines)
-        # Extract highlighted lines (answers) from the page
-        highlighted_lines = extract_highlighted_lines(pdf.pages[writing_page_indices[idx]])
-        if highlighted_lines:
-            all_answers_lines.append(highlighted_lines)
-        
-        if any("810L" in name for name in lines):
-          print(writing_lines)
+                lines = []
+            writing_lines.extend(lines)
+            # Extract highlighted lines (answers) from the page
+            highlighted_lines = extract_highlighted_lines2(pdf.pages[start_page + last_open_ended_page + idx])
+            if highlighted_lines:
+                all_answers_lines.extend(highlighted_lines)
+            else:
+                all_answers_lines.append([])
+            if any("810L" in name for name in lines):
+                print(all_answers_lines)
 
     student['writing_assignments'] = parse_writing_assignments_from_lines(writing_lines, all_answers_lines) if writing_lines else {"assignments_completed": 0, "data": []}
     return student
+
+def extract_highlighted_lines2(page, highlight_color=(0, 0, 1)):
+    # Get all lines from the page text
+    text_lines = [ln.strip() for ln in (page.extract_text() or "").splitlines() if ln.strip()]
+    # Get highlighted lines as text
+    words = page.extract_words(extra_attrs=["non_stroking_color"])
+    lines = {}
+    for word in words:
+        color = word.get("non_stroking_color")
+        if color == highlight_color:
+            y0 = round(word["top"], 1)
+            if y0 not in lines:
+                lines[y0] = []
+            lines[y0].append(word["text"])
+    # Join words for each y0 to get highlighted line text
+    highlighted_lines = [" ".join(lines[y]) for y in sorted(lines.keys())]
+    # Find indices of highlighted lines in text_lines
+    hl_indices = []
+    for hl in highlighted_lines:
+        try:
+            idx = text_lines.index(hl)
+            hl_indices.append((idx, hl))
+        except ValueError:
+            continue  # highlighted line not found in text_lines
+    # Sort by index and group consecutive indices
+    hl_indices.sort()
+    grouped_answers = []
+    current_group = []
+    prev_idx = None
+    for idx, hl in hl_indices:
+        if prev_idx is not None and idx != prev_idx + 1:
+            if current_group:
+                grouped_answers.append(current_group)
+                current_group = []
+        current_group.append(hl)
+        prev_idx = idx
+    if current_group:
+        grouped_answers.append(current_group)
+    return grouped_answers
 
 def extract_highlighted_lines(page, highlight_color=(0, 0, 1)):
     # highlight_color: (R, G, B) tuple, e.g., (0, 0, 1) for blue
@@ -162,36 +265,21 @@ def pdf_to_json(pdf_path, output_path):
     data = []
     with pdfplumber.open(pdf_path) as pdf:
         total_pages = len(pdf.pages)
-        i = 0
-        student_idx = 0
-        while i < total_pages:
-            # Try 4-page student first
-            if i + 3 < total_pages:
-                first_page_text = pdf.pages[i].extract_text()
-                if re.search(r"Student:\s*", first_page_text):
-                    try:
-                        student = parse_student(pdf, i, 4)
-                        data.append(student)
-                        i += 4
-                        student_idx += 1
-                        continue
-                    except Exception as e:
-                        print(f"Error parsing 4-page student at page {i}: {e}")
-            # Try 3-page student fallback
-            if i + 2 < total_pages:
-                first_page_text = pdf.pages[i].extract_text()
-                if re.search(r"Student:\s*", first_page_text):
-                    try:
-                        student = parse_student(pdf, i, 3)
-                        data.append(student)
-                        i += 3
-                        student_idx += 1
-                        continue
-                    except Exception as e:
-                        print(f"Error parsing 3-page student at page {i}: {e}")
-            # If neither, skip this page
-            # print(f"Skipping page {i} (no valid student info found)")
-            i += 1
+        # 1. Find all student start pages
+        student_starts = []
+        for idx in range(total_pages):
+            text = pdf.pages[idx].extract_text()
+            if text and re.search(r"Student ID:\s*", text):
+                student_starts.append(idx)
+        # 2. For each student, determine their page range
+        for i, start_idx in enumerate(student_starts):
+            end_idx = student_starts[i + 1] - 1 if i + 1 < len(student_starts) else total_pages - 1
+            num_pages = end_idx - start_idx + 1
+            try:
+                student = parse_student(pdf, start_idx, num_pages)
+                data.append(student)
+            except Exception as e:
+                print(f"Error parsing student at pages {start_idx}-{end_idx}: {e}")
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
     print(f"Exported to {output_path}")
