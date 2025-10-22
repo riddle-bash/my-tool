@@ -13,6 +13,6 @@ def dumpquote(file_path):
         file.write(content_without_quotes)
 
 # Example usage
-dumpquote('./out/alternative.json')
-dumpquote('./out/optional.json')
+# dumpquote('./out/alternative.json')
+# dumpquote('./out/optional.json')
 dumpquote('./out/stage.json')

@@ -48,7 +48,7 @@ const map1 = {
 }
 
 // Read the Excel file
-const configFile = xlsx.readFile('./Book7.xlsx')
+const configFile = xlsx.readFile('./adult short.xlsx')
 const configSheet = configFile.Sheets[configFile.SheetNames[0]]
 
 // Convert sheet to JSON
