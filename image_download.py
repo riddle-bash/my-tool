@@ -88,19 +88,29 @@ https://demo.tienganhk12.com/Upload/Exam/637147895575078390_Artboard%20Copy%2016
 https://demo.tienganhk12.com/Upload/Exam/638872485986028073_6%20T%E1%BB%95ng%20%C3%B4n%20TV.png
 """  # <-- paste here
 
-raw_urls_2 = """https://demo.tienganhk12.com/Upload/Quiz/banners/%C4%90%C4%83ng%20k%C3%BD%20l%C3%A0m%20%C4%90S.png
+raw_urls_2 = """https://demo.tienganhk12.com/Upload/Quiz/Icons/zalo_icon_32.png
+https://demo.tienganhk12.com/Upload/Quiz/Logos/zalo%20icon%20gif.gif
+https://demo.tienganhk12.com/static/media/dashboard.26e8041d.png
+https://demo.tienganhk12.com/Upload/Quiz/banners/%C4%90%C4%83ng%20k%C3%BD%20l%C3%A0m%20%C4%90S.png
+https://demo.tienganhk12.com/Upload/Quiz/00.%20TAK12%20icons/TAK12%20tagline%20(1).png
+https://demo.tienganhk12.com/Upload/Quiz/00.%20TAK12%20icons/On%20thi%20chung%20chi%20(1).png
 https://demo.tienganhk12.com/Upload/Quiz/banners/Nang%20cao%20Tieng%20Anh.png
 https://demo.tienganhk12.com/Upload/Quiz/banners/On%20thi%20vao%206.png
 https://demo.tienganhk12.com/Upload/Quiz/banners/On%20thi%20vao%2010.png
 https://demo.tienganhk12.com/Upload/Quiz/banners/On%20thi%20vao%20DH.png
 https://demo.tienganhk12.com/Upload/Quiz/banners/Hoc%20tot%20Toan,%20TA.png
-https://demo.tienganhk12.com/Upload/Quiz/banners/Contuhoc.com.png
-https://demo.tienganhk12.com/Upload/Quiz/banners/azVocab%20tagline%20(1).png
-https://demo.tienganhk12.com/Upload/Quiz/banners/Thi%20th%E1%BB%AD%20v%C3%A0o%2010%20HN%20banner%20sidebar.png
-https://demo.tienganhk12.com/Upload/Quiz/Ban%20c%E1%BB%91%20v%E1%BA%A5n/C%C3%B4%20M%E1%BB%99c%20Lan%20(vu%C3%B4ng).png
-https://demo.tienganhk12.com/Upload/templates/CoPhuongAnh.png
-https://demo.tienganhk12.com/Upload/templates/CoNganHa.png
-https://demo.tienganhk12.com/Upload/DownloadImages/1339637838004349293849.jpg"""
+https://demo.tienganhk12.com/Upload/News/638078193743129762_Start%20Free.png
+https://demo.tienganhk12.com/Upload/News/638769666349404705_h%E1%BB%99i%20th%E1%BA%A3o%20v%C3%A0%20Kh%C3%B3a%20HD%20%C3%B4n%20thi%20v%C3%A0o%2010.png
+https://demo.tienganhk12.com/Upload/News/638778059657908207_de-thi-toan-vao-10-ninh-thuan.png
+https://demo.tienganhk12.com/Upload/News/638290766314064269_FAQ.png
+https://demo.tienganhk12.com/Upload/News/638772812649162474_doc-hieu-noi-dung-hinh-anh-bien-bao.png
+https://demo.tienganhk12.com/Upload/News/638639071760764253_de-toan-vao-10-hcm-2025.png
+https://demo.tienganhk12.com/Upload/News/638078163382301239_On%20thi%20chung%20chi.png
+https://demo.tienganhk12.com/Upload/News/638313253737453130_Tong%20quan%20Toefl%20Primary.png
+https://demo.tienganhk12.com/Upload/News/638078163017879463_On%20thi%20vao%206.png
+https://demo.tienganhk12.com/Upload/News/638078162405410396_On%20thi%20vao%20DH.png
+https://demo.tienganhk12.com/Upload/News/638313186674129008_Hoc%20tot%20Toan,%20TA%20(1).png
+https://demo.tienganhk12.com/Upload/News/638078162709505243_On%20thi%20vao%2010.png"""
 
 # Split the string into individual URLs, stripping empty lines
 image_urls = [line.strip() for line in raw_urls_2.strip().splitlines() if line.strip()]
