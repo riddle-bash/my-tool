@@ -1,8 +1,8 @@
-import { fs } from './deps.ts'
-import { path } from './deps.ts'
-import { log } from './deps.ts'
+import { fs } from '../deps.ts'
+import { path } from '../deps.ts'
+import { log } from '../deps.ts'
 import { DOMParser } from 'https://esm.sh/linkedom'
-import { postgres } from './deps.ts'
+import { postgres } from '../deps.ts'
 import * as XLSX from 'https://cdn.sheetjs.com/xlsx-latest/package/xlsx.mjs'
 
 /**

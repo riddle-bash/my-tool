@@ -1,8 +1,8 @@
-import { fs } from "./deps.ts";
-import { path } from "./deps.ts";
-import { log } from "./deps.ts";
-import { download } from "./deps.ts";
-import { postgres } from "./deps.ts";
+import { fs } from "../deps.ts";
+import { path } from "../deps.ts";
+import { log } from "../deps.ts";
+import { download } from "../deps.ts";
+import { postgres } from "../deps.ts";
 
 /**
  * 1. Scan root folder recursive ly to find all vocabulary subfolder and json/sound/image files.

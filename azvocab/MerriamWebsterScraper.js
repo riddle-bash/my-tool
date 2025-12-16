@@ -1,4 +1,4 @@
-import { log } from "./deps.ts";
+import { log } from "../deps.ts";
 import { DOMParser } from "https://esm.sh/linkedom";
 import { sleepRandomAmountOfSeconds } from "https://deno.land/x/sleep/mod.ts";
 

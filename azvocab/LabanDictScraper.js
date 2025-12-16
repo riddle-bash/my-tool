@@ -1,9 +1,9 @@
-import { fs } from './deps.ts'
-import { path } from './deps.ts'
-import { log } from './deps.ts'
-import { download } from './deps.ts'
+import { fs } from '../deps.ts'
+import { path } from '../deps.ts'
+import { log } from '../deps.ts'
+import { download } from '../deps.ts'
 import { sleepRandomAmountOfSeconds } from 'https://deno.land/x/sleep/mod.ts'
-import { postgres } from './deps.ts'
+import { postgres } from '../deps.ts'
 
 const WORD_FILE = './in/test.txt'
 

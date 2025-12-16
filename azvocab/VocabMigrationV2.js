@@ -1,7 +1,7 @@
-import { fs } from "./deps.ts";
-import { path } from "./deps.ts";
-import { log } from "./deps.ts";
-import { postgres } from "./deps.ts";
+import { fs } from "../deps.ts";
+import { path } from "../deps.ts";
+import { log } from "../deps.ts";
+import { postgres } from "../deps.ts";
 
 /**
  * Refactor dictionary data: Correct pronunciation media field (move to root object), include subfolder to file. Add entry id, definiction id.
