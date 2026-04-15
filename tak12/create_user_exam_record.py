@@ -66,8 +66,63 @@ VALUES
     return inserts
 
 
+def generate_insert_2():
+    inserts = []
+
+    for customer_guid in GUIDS:
+        streak = 0
+
+        for i in range(NUM_DAYS):
+            date = TODAY - timedelta(days=i)
+
+            # 25% chance user inactive
+            if random.random() < 0.25:
+                streak = 0
+                continue
+
+            streak += 1
+
+            activity_date = date.strftime('%Y-%m-%d')
+
+            # Simulate subjects (user may study multiple subjects per day)
+            subjects = random.sample([1, 2, 3], random.randint(1, 2))
+
+            for subject_id in subjects:
+                # base questions
+                base_q = random.randint(5, 25)
+
+                # streak bonus
+                total_q = base_q + min(streak, 10)
+
+                # time per question: 5–15 seconds
+                avg_time = random.randint(5, 15)
+                take_time = total_q * avg_time
+
+                # random update time within the day (UTC)
+                update_time = date.replace(
+                    hour=random.randint(0, 23),
+                    minute=random.randint(0, 59),
+                    second=random.randint(0, 59)
+                ).strftime('%Y-%m-%d %H:%M:%S')
+
+                sql = f"""
+INSERT INTO [QuizSystem].[dbo].[UserLearningActivitySnapshots]
+([CustomerGuid], [SubjectId], [ActivityDate],
+ [QuestionCount], [TakeTimeSeconds], [UpdateTimeUtc])
+VALUES
+('{customer_guid}', {subject_id}, '{activity_date}',
+ {total_q}, {take_time}, '{update_time}');
+""".strip()
+
+                inserts.append(sql)
+
+    return inserts
+
+
+
 if __name__ == "__main__":
     sql_statements = generate_insert()
+    sql_statements += generate_insert_2()
 
     print(f"Total inserts: {len(sql_statements)}")
 
