@@ -9,7 +9,7 @@ INSERT INTO [dbo].[AbpUsers] (
     IsActive, IsDeleted, IsEmailConfirmed,
     IsLockoutEnabled, IsPhoneNumberConfirmed, IsTwoFactorEnabled,
     Name, NormalizedEmailAddress, NormalizedUserName,
-    Password, Surname, UserName, Guid
+    Password, Surname, UserName, Guid, SecurityStamp
 )
 SELECT
     0,
@@ -22,6 +22,7 @@ SELECT
     '123456',
     N'Test',
     CONCAT('user', n),
+    NEWID(),
     NEWID()
 FROM nums
 OPTION (MAXRECURSION 0);
