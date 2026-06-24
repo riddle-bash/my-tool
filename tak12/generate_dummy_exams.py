@@ -1,6 +1,7 @@
 import requests
 import string
 from datetime import datetime
+import re
 
 BASE_URL = "http://localhost:3002/api/services/app"
 
@@ -27,6 +28,46 @@ def post(endpoint, payload):
     # ABP usually wraps response inside result
     return data["result"]
 
+
+
+def slugify(text):
+    text = text.lower()
+    text = re.sub(r'[^a-z0-9]+', '-', text)
+    return text.strip('-')
+
+
+def create_menu(
+    name,
+    url="",
+    parent_id=None,
+    exam_id=None,
+    sort_order=0
+):
+    payload = {
+        "name": name,
+        "shortName": "",
+        "url": url,
+        "target": "_self",
+        "tooltip": "",
+        "isActive": True,
+        "isSeparator": False,
+        "sortOrder": sort_order,
+        "color": "",
+        "showOnMap": True,
+        "imagePath": ""
+    }
+
+    if parent_id is not None:
+        payload["parentId"] = parent_id
+
+    if exam_id is not None:
+        payload["examId"] = exam_id
+
+    result = post("/Menu/Create", payload)
+
+    print(f"Created Menu: {name} ({result['id']})")
+
+    return result["id"]
 
 # ----------------------------------------
 # Create Exam
@@ -133,7 +174,7 @@ def create_question(quiz_id, index):
         "questionText": "<p>What is his name that start with letter P?</p>",
         "questionName": str(index),
         "questionType": 1,
-        "questionStatus": 0,
+        "questionStatus": 2,
         "questionState": 0,
         "vocabLevel": 1,
         "difficulty": 1,
@@ -144,7 +185,7 @@ def create_question(quiz_id, index):
         "feedbackMessage": "<p>He is Peter</p>",
         "showOnQuizOnly": False,
         "displayNote": False,
-        "displayNotePosition": 3,
+        "displayNotePosition": 2,
         "showRelatedTopicDetail": False,
         "displayAllChildren": False,
         "showExplanationSideBySide": True,
@@ -195,6 +236,13 @@ def create_question(quiz_id, index):
 def build_exam(letter):
     exam_id = create_exam(letter)
 
+    create_menu(
+        name=f"Exam {letter}",
+        url=f"/ex/{exam_id}/exam-{letter.lower()}",
+        parent_id=alphabet_menu_id,
+        exam_id=exam_id
+    )
+
     for category_number in [1, 2]:
         category_id = create_category(
             exam_id,
@@ -213,6 +261,15 @@ def build_exam(letter):
 
 
 if __name__ == "__main__":
+  dashboard_menu_id = create_menu(
+    "Dashboard",
+    "/"
+  )
+
+  alphabet_menu_id = create_menu(
+    "Alphabets",
+    parent_id=dashboard_menu_id
+  )
   # Create exams A-L, except B
   for letter in string.ascii_uppercase[:12]:  # A-L
       if letter == "B":
